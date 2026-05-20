@@ -124,7 +124,7 @@ export default function SubjectsPage() {
 
       {/* Filter */}
       <div className="mb-4 flex gap-3">
-        <Select value={filterDept} onValueChange={setFilterDept}>
+        <Select value={filterDept} onValueChange={(v) => setFilterDept(v ?? "all")}>
           <SelectTrigger className="w-64">
             <SelectValue placeholder="Filter by department">
               {(value: string) => {
@@ -212,7 +212,7 @@ export default function SubjectsPage() {
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
-            <Select value={departmentId} onValueChange={setDepartmentId}>
+            <Select value={departmentId} onValueChange={(v) => setDepartmentId(v ?? "")}>
               <SelectTrigger>
                 <SelectValue placeholder="Select department">
                   {(value: string) => {

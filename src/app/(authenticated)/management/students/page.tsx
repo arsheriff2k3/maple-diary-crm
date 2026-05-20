@@ -263,7 +263,7 @@ export default function StudentsPage() {
           onChange={(e) => setSearchQuery(e.target.value)}
           className="w-64"
         />
-        <Select value={filterRegion} onValueChange={setFilterRegion}>
+        <Select value={filterRegion} onValueChange={(v) => setFilterRegion(v ?? "all")}>
           <SelectTrigger className="w-48">
             <SelectValue placeholder="All Regions" />
           </SelectTrigger>
@@ -519,7 +519,7 @@ export default function StudentsPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Region</Label>
-                <Select value={region} onValueChange={setRegion}>
+                <Select value={region} onValueChange={(v) => setRegion(v ?? "")}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select region" />
                   </SelectTrigger>
@@ -534,7 +534,7 @@ export default function StudentsPage() {
               </div>
               <div className="space-y-2">
                 <Label>Timezone</Label>
-                <Select value={timezone} onValueChange={setTimezone}>
+                <Select value={timezone} onValueChange={(v) => setTimezone(v ?? "")}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select timezone" />
                   </SelectTrigger>
@@ -623,7 +623,7 @@ function TeacherAssignmentRow({
         <Badge variant="outline" className="shrink-0">
           {subjectName}
         </Badge>
-        <Select value={staffId} onValueChange={onStaffChange}>
+        <Select value={staffId} onValueChange={(v) => v && onStaffChange(v)}>
           <SelectTrigger className="flex-1">
             <SelectValue placeholder="Assign teacher">
               {(value: string) => {

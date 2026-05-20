@@ -210,7 +210,7 @@ export default function StaffPage() {
           onChange={(e) => setSearchQuery(e.target.value)}
           className="w-64"
         />
-        <Select value={filterDept} onValueChange={setFilterDept}>
+        <Select value={filterDept} onValueChange={(v) => setFilterDept(v ?? "all")}>
           <SelectTrigger className="w-48">
             <SelectValue placeholder="All Departments">
               {(value: string) => {
@@ -361,7 +361,7 @@ export default function StaffPage() {
               <Select
                 value={formDeptId}
                 onValueChange={(v) => {
-                  setFormDeptId(v);
+                  setFormDeptId(v ?? "");
                   setFormSubjectIds([]);
                 }}
               >

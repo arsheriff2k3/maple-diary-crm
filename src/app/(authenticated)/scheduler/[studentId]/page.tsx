@@ -819,6 +819,7 @@ export default function StudentSchedulerPage({
               <Select
                 value={formSubjectId}
                 onValueChange={(v) => {
+                  if (!v) return;
                   setFormSubjectId(v);
                   setFormSelectedSlot(null);
                   const assignment = student.teacherAssignments.find(
@@ -968,7 +969,7 @@ export default function StudentSchedulerPage({
                   </div>
                   <div className="space-y-2">
                     <Label>Time</Label>
-                    <Select value={recTime} onValueChange={setRecTime}>
+                    <Select value={recTime} onValueChange={(v) => setRecTime(v ?? "")}>
                       <SelectTrigger>
                         <SelectValue placeholder="Pick time">
                           {(value: string) => {

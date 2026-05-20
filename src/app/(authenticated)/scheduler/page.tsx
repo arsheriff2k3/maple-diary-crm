@@ -125,7 +125,7 @@ export default function SchedulerPage() {
           onChange={(e) => setSearchQuery(e.target.value)}
           className="w-64"
         />
-        <Select value={filterRegion} onValueChange={setFilterRegion}>
+        <Select value={filterRegion} onValueChange={(v) => setFilterRegion(v ?? "all")}>
           <SelectTrigger className="w-48">
             <SelectValue placeholder="All Regions">
               {(value: string) => {
@@ -146,7 +146,7 @@ export default function SchedulerPage() {
         <Select
           value={filterDepartment}
           onValueChange={(v) => {
-            setFilterDepartment(v);
+            setFilterDepartment(v ?? "all");
             setFilterSubject("all");
           }}
         >
@@ -167,7 +167,7 @@ export default function SchedulerPage() {
             ))}
           </SelectContent>
         </Select>
-        <Select value={filterSubject} onValueChange={setFilterSubject}>
+        <Select value={filterSubject} onValueChange={(v) => setFilterSubject(v ?? "all")}>
           <SelectTrigger className="w-48">
             <SelectValue placeholder="All Subjects">
               {(value: string) => {
