@@ -1,10 +1,9 @@
 "use node";
 
-import { action } from "./_generated/server";
+import { internalAction } from "./_generated/server";
 import { v } from "convex/values";
-import { internal } from "./_generated/api";
 
-export const createWithStudentId = action({
+export const createWithStudentId = internalAction({
   args: {
     firstName: v.string(),
     lastName: v.string(),
@@ -24,12 +23,13 @@ export const createWithStudentId = action({
     packageStartDate: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    const { internal } = await import("./_generated/api");
+
     const result: any = await ctx.runMutation(
       internal.studentInternal.createStudent,
       args
     );
 
-    // Send credentials email (non-blocking)
     if (args.phone && result.studentId) {
       try {
         await ctx.runAction(internal.email.sendStudentCredentials, {
