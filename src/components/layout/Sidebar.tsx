@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 
 const managementItems = [
   { href: "/management/departments", label: "Departments", icon: Building2 },
-  { href: "/management/subjects", label: "Subjects", icon: BookOpen },
+  { href: "/management/courses", label: "Courses", icon: BookOpen },
   { href: "/management/staff", label: "Staff", icon: Users },
   { href: "/management/students", label: "Students", icon: GraduationCap },
 ];
@@ -108,6 +108,20 @@ export default function Sidebar() {
         >
           <CalendarDays className="h-4 w-4" />
           Academic Scheduler
+        </Link>
+
+        <Link
+          href="/calendar"
+          className={cn(
+            "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+            isActive("/calendar")
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+          )}
+          onClick={() => setMobileOpen(false)}
+        >
+          <CalendarDays className="h-4 w-4" />
+          Calendar
         </Link>
       </nav>
     </div>

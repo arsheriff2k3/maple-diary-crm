@@ -11,12 +11,12 @@ export const getStats = query({
       .query("students")
       .filter((q) => q.eq(q.field("isActive"), true))
       .collect();
-    const subjects = await ctx.db.query("subjects").collect();
+    const courses = await ctx.db.query("subjects").collect();
 
     return {
       teacherCount: staff.length,
       studentCount: students.length,
-      subjectCount: subjects.length,
+      subjectCount: courses.length,
     };
   },
 });

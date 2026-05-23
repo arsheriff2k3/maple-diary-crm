@@ -96,11 +96,11 @@ export default function StaffDetailPage({
             <div className="flex items-start gap-3">
               <BookOpen className="h-4 w-4 text-muted-foreground mt-1" />
               <div>
-                <p className="text-sm text-muted-foreground">Subjects</p>
+                <p className="text-sm text-muted-foreground">Courses</p>
                 <div className="flex flex-wrap gap-1 mt-1">
-                  {staff.subjects.map((s) => (
-                    <Badge key={s._id} variant="secondary">
-                      {s.name}
+                  {staff.courses.map((c) => (
+                    <Badge key={c._id} variant="secondary">
+                      {c.name}
                     </Badge>
                   ))}
                 </div>

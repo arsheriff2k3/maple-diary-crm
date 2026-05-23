@@ -27,7 +27,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CalendarDays, X } from "lucide-react";
 import { useState, useEffect } from "react";
-import { PAGE_SIZE, REGIONS } from "@/lib/constants";
+import { PAGE_SIZE, REGIONS, TIMEZONES } from "@/lib/constants";
 import { useRouter } from "next/navigation";
 
 export default function SchedulerPage() {
@@ -38,8 +38,9 @@ export default function SchedulerPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [filterRegion, setFilterRegion] = useState<string>("all");
+  const [filterTimezone, setFilterTimezone] = useState<string>("all");
   const [filterDepartment, setFilterDepartment] = useState<string>("all");
-  const [filterSubject, setFilterSubject] = useState<string>("all");
+  const [filterCourse, setFilterCourse] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
@@ -49,20 +50,21 @@ export default function SchedulerPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch, filterRegion, filterDepartment, filterSubject]);
+  }, [debouncedSearch, filterRegion, filterTimezone, filterDepartment, filterCourse]);
 
   const { results, status, loadMore } = usePaginatedQuery(
     api.students.list,
     {
       searchQuery: debouncedSearch || undefined,
       region: filterRegion !== "all" ? filterRegion : undefined,
+      timezone: filterTimezone !== "all" ? filterTimezone : undefined,
       departmentId:
         filterDepartment !== "all"
           ? (filterDepartment as Id<"departments">)
           : undefined,
       subjectId:
-        filterSubject !== "all"
-          ? (filterSubject as Id<"subjects">)
+        filterCourse !== "all"
+          ? (filterCourse as Id<"subjects">)
           : undefined,
     },
     { initialNumItems: PAGE_SIZE }
@@ -84,31 +86,33 @@ export default function SchedulerPage() {
   const hasPrevPage = currentPage > 1;
 
   const getSubjectNames = (ids: string[]) =>
-    allSubjects?.filter((s) => ids.includes(s._id)).map((s) => s.name) ?? [];
+    allSubjects?.filter((c: any) => ids.includes(c._id)).map((c: any) => c.name) ?? [];
 
   const hasFilters =
     searchQuery ||
     filterRegion !== "all" ||
+    filterTimezone !== "all" ||
     filterDepartment !== "all" ||
-    filterSubject !== "all";
+    filterCourse !== "all";
 
   const clearFilters = () => {
     setSearchQuery("");
     setFilterRegion("all");
+    setFilterTimezone("all");
     setFilterDepartment("all");
-    setFilterSubject("all");
+    setFilterCourse("all");
   };
 
-  // Only show subjects belonging to departments that have active students
+  // Only show courses belonging to departments that have active students
   const activeDeptIds = new Set(departments?.map((d) => d._id) ?? []);
-  const activeSubjects =
-    allSubjects?.filter((s) => activeDeptIds.has(s.departmentId)) ?? [];
+  const activeCourses =
+    allSubjects?.filter((c: any) => activeDeptIds.has(c.departmentId)) ?? [];
 
   // Further filter by selected department
-  const filteredSubjectOptions =
+  const filteredCourseOptions =
     filterDepartment !== "all"
-      ? activeSubjects.filter((s) => s.departmentId === filterDepartment)
-      : activeSubjects;
+      ? activeCourses.filter((c: any) => c.departmentId === filterDepartment)
+      : activeCourses;
 
   return (
     <div>
@@ -143,11 +147,29 @@ export default function SchedulerPage() {
             ))}
           </SelectContent>
         </Select>
+        <Select value={filterTimezone} onValueChange={(v) => setFilterTimezone(v ?? "all")}>
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="All Timezones">
+              {(value: string) => {
+                if (!value || value === "all") return "All Timezones";
+                return value;
+              }}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Timezones</SelectItem>
+            {TIMEZONES.map((tz) => (
+              <SelectItem key={tz} value={tz}>
+                {tz}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Select
           value={filterDepartment}
           onValueChange={(v) => {
             setFilterDepartment(v ?? "all");
-            setFilterSubject("all");
+            setFilterCourse("all");
           }}
         >
           <SelectTrigger className="w-48">
@@ -167,20 +189,20 @@ export default function SchedulerPage() {
             ))}
           </SelectContent>
         </Select>
-        <Select value={filterSubject} onValueChange={(v) => setFilterSubject(v ?? "all")}>
+        <Select value={filterCourse} onValueChange={(v) => setFilterCourse(v ?? "all")}>
           <SelectTrigger className="w-48">
-            <SelectValue placeholder="All Subjects">
+            <SelectValue placeholder="All Courses">
               {(value: string) => {
-                if (!value || value === "all") return "All Subjects";
-                return allSubjects?.find((s) => s._id === value)?.name ?? value;
+                if (!value || value === "all") return "All Courses";
+                return allSubjects?.find((c: any) => c._id === value)?.name ?? value;
               }}
             </SelectValue>
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Subjects</SelectItem>
-            {filteredSubjectOptions.map((s) => (
-              <SelectItem key={s._id} value={s._id}>
-                {s.name}
+            <SelectItem value="all">All Courses</SelectItem>
+            {filteredCourseOptions.map((c: any) => (
+              <SelectItem key={c._id} value={c._id}>
+                {c.name}
               </SelectItem>
             ))}
           </SelectContent>
@@ -216,7 +238,7 @@ export default function SchedulerPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
-                  <TableHead>Subjects</TableHead>
+                  <TableHead>Courses</TableHead>
                   <TableHead>Region</TableHead>
                   <TableHead>Pending Classes</TableHead>
                   <TableHead>Progress</TableHead>
@@ -237,7 +259,7 @@ export default function SchedulerPage() {
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
-                          {getSubjectNames(student.subjectIds).map((name) => (
+                          {getSubjectNames(student.subjectIds).map((name: any) => (
                             <Badge
                               key={name}
                               variant="secondary"

@@ -57,22 +57,22 @@ export const getById = query({
     if (!staff) return null;
 
     const department = await ctx.db.get(staff.departmentId);
-    const subjects = await Promise.all(
+    const courses = await Promise.all(
       staff.subjectIds.map((id) => ctx.db.get(id))
     );
 
     return {
       ...staff,
       departmentName: department?.name ?? "Unknown",
-      subjects: subjects.filter(Boolean).map((s) => ({
-        _id: s!._id,
-        name: s!.name,
+      courses: courses.filter(Boolean).map((c) => ({
+        _id: c!._id,
+        name: c!.name,
       })),
     };
   },
 });
 
-export const getBySubject = query({
+export const getByCourse = query({
   args: { subjectId: v.id("subjects") },
   handler: async (ctx, args) => {
     const allStaff = await ctx.db

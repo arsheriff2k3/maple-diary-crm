@@ -93,6 +93,7 @@ export default function StudentSchedulerPage({
 
   const [sessionFormOpen, setSessionFormOpen] = useState(false);
   const [scheduleMode, setScheduleMode] = useState<"one-time" | "recurring">("one-time");
+  const [isBonusSession, setIsBonusSession] = useState(false);
   const [rescheduleFormOpen, setRescheduleFormOpen] = useState(false);
   const [rescheduleSessionId, setRescheduleSessionId] = useState<string | null>(
     null
@@ -106,7 +107,7 @@ export default function StudentSchedulerPage({
   const cancelSession = useMutation(api.sessions.cancel);
 
   // Shared session form state
-  const [formSubjectId, setFormSubjectId] = useState("");
+  const [formSubjectId, setFormCourseId] = useState("");
   const [formStaffId, setFormStaffId] = useState("");
   const [formDuration, setFormDuration] = useState(60);
   const [formLink, setFormLink] = useState("");
@@ -155,6 +156,7 @@ export default function StudentSchedulerPage({
 
   const getAttendanceColor = (session: any) => {
     if (session.status === "cancelled") return "bg-gray-300";
+    if (session.isBonus) return "bg-purple-500";
     if (session.attendance === "present") return "bg-green-500";
     if (session.attendance === "absent") return "bg-red-500";
     if (session.attendance === "rescheduled") return "bg-blue-500";
@@ -164,7 +166,7 @@ export default function StudentSchedulerPage({
 
   // Compute how many sessions are already scheduled (not cancelled/completed)
   const scheduledCount =
-    sessions?.filter((s) => s.status === "scheduled").length ?? 0;
+    sessions?.filter((s) => s.status === "scheduled" && !s.isBonus).length ?? 0;
   const remainingToSchedule = student
     ? student.classesPerPackage - student.classesCompleted - scheduledCount
     : 0;
@@ -216,7 +218,7 @@ export default function StudentSchedulerPage({
 
   const handleCreateSession = async () => {
     if (!formSubjectId || !formStaffId || !formSelectedSlot) {
-      toast.error("Subject, date and time slot are required");
+      toast.error("Course, date and time slot are required");
       return;
     }
     try {
@@ -228,8 +230,9 @@ export default function StudentSchedulerPage({
         duration: formDuration * 60000,
         meetingLink: formLink || "",
         notes: formNotes || undefined,
+        isBonus: isBonusSession || undefined,
       });
-      toast.success("Session scheduled");
+      toast.success(isBonusSession ? "Bonus session scheduled" : "Session scheduled");
       setSessionFormOpen(false);
       resetForm();
     } catch (err: any) {
@@ -325,7 +328,7 @@ export default function StudentSchedulerPage({
   };
 
   const resetForm = () => {
-    setFormSubjectId("");
+    setFormCourseId("");
     setFormStaffId("");
     setFormDate("");
     setFormSelectedSlot(null);
@@ -336,6 +339,7 @@ export default function StudentSchedulerPage({
     setRecTime("");
     setRecStartDate("");
     setScheduleMode("one-time");
+    setIsBonusSession(false);
   };
 
   const toggleDay = (day: number) => {
@@ -385,15 +389,28 @@ export default function StudentSchedulerPage({
         title={`${student.firstName} ${student.lastName}`}
         description="Session schedule and attendance"
         action={
-          <Button
-            onClick={() => {
-              resetForm();
-              setSessionFormOpen(true);
-            }}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Schedule Session
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                resetForm();
+                setIsBonusSession(true);
+                setSessionFormOpen(true);
+              }}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Bonus Session
+            </Button>
+            <Button
+              onClick={() => {
+                resetForm();
+                setSessionFormOpen(true);
+              }}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Schedule Session
+            </Button>
+          </div>
         }
       />
 
@@ -437,14 +454,10 @@ export default function StudentSchedulerPage({
             <div className="flex items-center gap-3">
               <CalendarDays className="h-4 w-4 text-muted-foreground shrink-0" />
               <div>
-                <p className="text-xs text-muted-foreground">Package Dates</p>
+                <p className="text-xs text-muted-foreground">Package Start</p>
                 <p className="text-sm">
                   {student.packageStartDate
                     ? format(new Date(student.packageStartDate), "MMM d, yyyy")
-                    : "--"}
-                  {" - "}
-                  {student.packageExpiryDate
-                    ? format(new Date(student.packageExpiryDate), "MMM d, yyyy")
                     : "--"}
                 </p>
               </div>
@@ -453,12 +466,12 @@ export default function StudentSchedulerPage({
         </CardContent>
       </Card>
 
-      {/* Subjects & Teachers */}
+      {/* Courses & Teachers */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
             <Users className="h-5 w-5" />
-            Subjects & Teachers
+            Courses & Teachers
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -485,7 +498,7 @@ export default function StudentSchedulerPage({
                 </div>
               </div>
             ))}
-            {student.subjects
+            {student.courses
               .filter(
                 (s) =>
                   !student.teacherDetails.find(
@@ -508,7 +521,7 @@ export default function StudentSchedulerPage({
       </Card>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <StatCard
           label="Total Classes"
           value={student.classesPerPackage}
@@ -529,6 +542,11 @@ export default function StudentSchedulerPage({
           label="Sessions Scheduled"
           value={scheduledCount}
           icon={CalendarDays}
+        />
+        <StatCard
+          label="Bonus Classes"
+          value={student.bonusClassesCompleted ?? 0}
+          icon={Plus}
         />
       </div>
 
@@ -571,6 +589,9 @@ export default function StudentSchedulerPage({
               <span className="w-3 h-3 rounded-full bg-yellow-500" /> Scheduled
             </span>
             <span className="flex items-center gap-1">
+              <span className="w-3 h-3 rounded-full bg-purple-500" /> Bonus
+            </span>
+            <span className="flex items-center gap-1">
               <span className="w-3 h-3 rounded-full bg-gray-300" /> Cancelled
             </span>
           </div>
@@ -593,17 +614,23 @@ export default function StudentSchedulerPage({
               return (
                 <div
                   key={day.toISOString()}
-                  className="aspect-square border rounded-md p-1 text-xs relative"
+                  className="min-h-[80px] border rounded-md p-1 text-xs relative"
                 >
                   <span className="text-muted-foreground">
                     {format(day, "d")}
                   </span>
-                  <div className="flex flex-wrap gap-0.5 mt-0.5">
+                  <div className="mt-0.5 space-y-0.5">
                     {daySessions.map((s) => (
-                      <span
+                      <div
                         key={s._id}
-                        className={`w-2 h-2 rounded-full ${getAttendanceColor(s)}`}
-                      />
+                        className={`px-1 py-0.5 rounded truncate text-[10px] leading-tight text-white ${getAttendanceColor(s)}`}
+                        title={`${s.subjectName} - ${s.staffName} at ${format(new Date(s.scheduledAt), "h:mm a")}${s.isBonus ? " (Bonus)" : ""}`}
+                      >
+                        <span className="font-medium">
+                          {format(new Date(s.scheduledAt), "h:mm")}
+                        </span>{" "}
+                        {s.subjectName}
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -629,7 +656,7 @@ export default function StudentSchedulerPage({
                 <TableHeader>
                   <TableRow>
                     <TableHead>Date & Time</TableHead>
-                    <TableHead>Subject</TableHead>
+                    <TableHead>Course</TableHead>
                     <TableHead>Teacher</TableHead>
                     <TableHead>Duration</TableHead>
                     <TableHead>Status</TableHead>
@@ -647,9 +674,16 @@ export default function StudentSchedulerPage({
                         )}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="secondary">
-                          {session.subjectName}
-                        </Badge>
+                        <div className="flex items-center gap-1">
+                          <Badge variant="secondary">
+                            {session.subjectName}
+                          </Badge>
+                          {session.isBonus && (
+                            <Badge variant="outline" className="text-[10px] px-1 py-0 text-purple-600 border-purple-300">
+                              Bonus
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-sm">
                         {session.staffName}
@@ -774,7 +808,7 @@ export default function StudentSchedulerPage({
       <Dialog open={sessionFormOpen} onOpenChange={setSessionFormOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Schedule Session</DialogTitle>
+            <DialogTitle>{isBonusSession ? "Schedule Bonus Session" : "Schedule Session"}</DialogTitle>
             {formSubjectId && formStaffId && (
               <DialogDescription>
                 Teacher: {student.teacherDetails.find((t) => t.subjectId === formSubjectId)?.staffName ?? ""}
@@ -788,7 +822,7 @@ export default function StudentSchedulerPage({
           </DialogHeader>
           <div className="space-y-4">
             {/* Mode Toggle */}
-            <div className="flex rounded-lg border p-1 gap-1">
+            {!isBonusSession && <div className="flex rounded-lg border p-1 gap-1">
               <button
                 type="button"
                 onClick={() => setScheduleMode("one-time")}
@@ -811,16 +845,16 @@ export default function StudentSchedulerPage({
               >
                 Recurring Sessions
               </button>
-            </div>
+            </div>}
 
-            {/* Subject */}
+            {/* Course */}
             <div className="space-y-2">
-              <Label>Subject</Label>
+              <Label>Course</Label>
               <Select
                 value={formSubjectId}
                 onValueChange={(v) => {
                   if (!v) return;
-                  setFormSubjectId(v);
+                  setFormCourseId(v);
                   setFormSelectedSlot(null);
                   const assignment = student.teacherAssignments.find(
                     (ta) => ta.subjectId === v
@@ -838,15 +872,15 @@ export default function StudentSchedulerPage({
                 }}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select subject">
+                  <SelectValue placeholder="Select course">
                     {(value: string) => {
-                      if (!value) return "Select subject";
-                      return student.subjects.find((s) => s._id === value)?.name ?? value;
+                      if (!value) return "Select course";
+                      return student.courses.find((s) => s._id === value)?.name ?? value;
                     }}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  {student.subjects.map((s) => (
+                  {student.courses.map((s) => (
                     <SelectItem key={s._id} value={s._id}>
                       {s.name}
                     </SelectItem>

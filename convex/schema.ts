@@ -27,6 +27,10 @@ export default defineSchema({
     email: v.string(),
     photoStorageId: v.optional(v.id("_storage")),
     photoUrl: v.optional(v.string()),
+    passwordHash: v.optional(v.string()),
+    resetToken: v.optional(v.string()),
+    resetTokenExpiresAt: v.optional(v.number()),
+    timezone: v.optional(v.string()),
     isActive: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -46,6 +50,7 @@ export default defineSchema({
     lastName: v.string(),
     email: v.string(),
     phone: v.optional(v.string()),
+    studentId: v.optional(v.string()),
     subjectIds: v.array(v.id("subjects")),
     region: v.string(),
     timezone: v.string(),
@@ -59,6 +64,7 @@ export default defineSchema({
     ),
     classesPerPackage: v.number(),
     classesCompleted: v.number(),
+    bonusClassesCompleted: v.optional(v.number()),
     packageStartDate: v.optional(v.number()),
     packageExpiryDate: v.optional(v.number()),
     isActive: v.boolean(),
@@ -70,9 +76,12 @@ export default defineSchema({
     .index("by_region", ["region"])
     .index("by_isActive", ["isActive"])
     .index("by_createdAt", ["createdAt"])
+    .index("by_timezone", ["timezone"])
+    .index("by_studentId", ["studentId"])
+    .index("by_phone", ["phone"])
     .searchIndex("search_students", {
       searchField: "firstName",
-      filterFields: ["region", "isActive"],
+      filterFields: ["region", "timezone", "isActive"],
     }),
 
   sessions: defineTable({
@@ -96,6 +105,7 @@ export default defineSchema({
       )
     ),
     attendanceMarkedAt: v.optional(v.number()),
+    isBonus: v.optional(v.boolean()),
     notes: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -143,4 +153,9 @@ export default defineSchema({
   })
     .index("by_status", ["status"])
     .index("by_student", ["studentId"]),
+
+  counters: defineTable({
+    name: v.string(),
+    value: v.number(),
+  }).index("by_name", ["name"]),
 });

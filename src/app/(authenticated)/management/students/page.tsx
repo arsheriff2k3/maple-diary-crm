@@ -55,6 +55,7 @@ export default function StudentsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [filterRegion, setFilterRegion] = useState<string>("all");
+  const [filterTimezone, setFilterTimezone] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
@@ -64,13 +65,14 @@ export default function StudentsPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch, filterRegion]);
+  }, [debouncedSearch, filterRegion, filterTimezone]);
 
   const { results, status, loadMore } = usePaginatedQuery(
     api.students.list,
     {
       searchQuery: debouncedSearch || undefined,
       region: filterRegion !== "all" ? filterRegion : undefined,
+      timezone: filterTimezone !== "all" ? filterTimezone : undefined,
     },
     { initialNumItems: PAGE_SIZE }
   );
@@ -99,13 +101,12 @@ export default function StudentsPage() {
   const [phone, setPhone] = useState("");
   const [region, setRegion] = useState("");
   const [timezone, setTimezone] = useState("");
-  const [formSubjectIds, setFormSubjectIds] = useState<string[]>([]);
+  const [formSubjectIds, setFormCourseIds] = useState<string[]>([]);
   const [teacherAssignments, setTeacherAssignments] = useState<
     { subjectId: string; staffId: string; meetingLink: string }[]
   >([]);
   const [classesPerPackage, setClassesPerPackage] = useState<number>(10);
   const [packageStartDate, setPackageStartDate] = useState("");
-  const [packageExpiryDate, setPackageExpiryDate] = useState("");
   const [deleteId, setDeleteId] = useState<Id<"students"> | null>(null);
 
   const createStudent = useMutation(api.students.create);
@@ -120,23 +121,22 @@ export default function StudentsPage() {
     setPhone("");
     setRegion("");
     setTimezone("");
-    setFormSubjectIds([]);
+    setFormCourseIds([]);
     setTeacherAssignments([]);
     setClassesPerPackage(10);
     setPackageStartDate("");
-    setPackageExpiryDate("");
   };
 
-  // When subjects change, update teacher assignments
+  // When courses change, update teacher assignments
   useEffect(() => {
     setTeacherAssignments((prev) => {
       const existing = new Map(
         prev.map((a) => [a.subjectId, { staffId: a.staffId, meetingLink: a.meetingLink }])
       );
-      return formSubjectIds.map((sid) => ({
-        subjectId: sid,
-        staffId: existing.get(sid)?.staffId ?? "",
-        meetingLink: existing.get(sid)?.meetingLink ?? "",
+      return formSubjectIds.map((cid) => ({
+        subjectId: cid,
+        staffId: existing.get(cid)?.staffId ?? "",
+        meetingLink: existing.get(cid)?.meetingLink ?? "",
       }));
     });
   }, [formSubjectIds]);
@@ -175,9 +175,6 @@ export default function StudentsPage() {
         packageStartDate: packageStartDate
           ? new Date(packageStartDate).getTime()
           : undefined,
-        packageExpiryDate: packageExpiryDate
-          ? new Date(packageExpiryDate).getTime()
-          : undefined,
       };
       if (editingId) {
         await updateStudent({ ...data, id: editingId });
@@ -201,7 +198,7 @@ export default function StudentsPage() {
     setPhone(student.phone ?? "");
     setRegion(student.region);
     setTimezone(student.timezone);
-    setFormSubjectIds(student.subjectIds);
+    setFormCourseIds(student.subjectIds);
     setTeacherAssignments(
       student.teacherAssignments.map((ta: any) => ({
         subjectId: ta.subjectId,
@@ -213,11 +210,6 @@ export default function StudentsPage() {
     setPackageStartDate(
       student.packageStartDate
         ? new Date(student.packageStartDate).toISOString().split("T")[0]
-        : ""
-    );
-    setPackageExpiryDate(
-      student.packageExpiryDate
-        ? new Date(student.packageExpiryDate).toISOString().split("T")[0]
         : ""
     );
     setFormOpen(true);
@@ -235,7 +227,7 @@ export default function StudentsPage() {
   };
 
   const getSubjectNames = (ids: string[]) =>
-    allSubjects?.filter((s) => ids.includes(s._id)).map((s) => s.name) ?? [];
+    allSubjects?.filter((c: any) => ids.includes(c._id)).map((c: any) => c.name) ?? [];
 
   return (
     <div>
@@ -276,13 +268,27 @@ export default function StudentsPage() {
             ))}
           </SelectContent>
         </Select>
-        {(searchQuery || filterRegion !== "all") && (
+        <Select value={filterTimezone} onValueChange={(v) => setFilterTimezone(v ?? "all")}>
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="All Timezones" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Timezones</SelectItem>
+            {TIMEZONES.map((tz) => (
+              <SelectItem key={tz} value={tz}>
+                {tz}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {(searchQuery || filterRegion !== "all" || filterTimezone !== "all") && (
           <Button
             variant="ghost"
             size="sm"
             onClick={() => {
               setSearchQuery("");
               setFilterRegion("all");
+              setFilterTimezone("all");
             }}
           >
             <X className="h-4 w-4 mr-1" />
@@ -303,7 +309,7 @@ export default function StudentsPage() {
           icon={GraduationCap}
           title="No students found"
           description={
-            searchQuery || filterRegion !== "all"
+            searchQuery || filterRegion !== "all" || filterTimezone !== "all"
               ? "Try adjusting your filters"
               : "Add your first student"
           }
@@ -315,7 +321,7 @@ export default function StudentsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
-                  <TableHead>Subjects</TableHead>
+                  <TableHead>Courses</TableHead>
                   <TableHead>Region</TableHead>
                   <TableHead>Timezone</TableHead>
                   <TableHead>Classes</TableHead>
@@ -334,7 +340,7 @@ export default function StudentsPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
-                        {getSubjectNames(student.subjectIds).map((name) => (
+                        {getSubjectNames(student.subjectIds).map((name: any) => (
                           <Badge key={name} variant="secondary" className="text-xs">
                             {name}
                           </Badge>
@@ -466,17 +472,17 @@ export default function StudentsPage() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Subjects</Label>
+              <Label>Courses</Label>
               <MultiSelect
                 options={
-                  visibleSubjects?.map((s) => ({
-                    value: s._id,
-                    label: s.name,
+                  visibleSubjects?.map((c: any) => ({
+                    value: c._id,
+                    label: c.name,
                   })) ?? []
                 }
                 selected={formSubjectIds}
-                onChange={setFormSubjectIds}
-                placeholder="Select subjects..."
+                onChange={setFormCourseIds}
+                placeholder="Select courses..."
               />
             </div>
             {/* Teacher Assignments */}
@@ -485,7 +491,7 @@ export default function StudentsPage() {
                 <Label>Teacher Assignments</Label>
                 {teacherAssignments.map((ta) => {
                   const subjectName =
-                    allSubjects?.find((s) => s._id === ta.subjectId)?.name ?? "";
+                    allSubjects?.find((c: any) => c._id === ta.subjectId)?.name ?? "";
                   return (
                     <TeacherAssignmentRow
                       key={ta.subjectId}
@@ -566,14 +572,6 @@ export default function StudentsPage() {
                   placeholder="Start date"
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Package Expiry Date</Label>
-                <DatePicker
-                  value={packageExpiryDate}
-                  onChange={setPackageExpiryDate}
-                  placeholder="Expiry date"
-                />
-              </div>
             </div>
           </div>
           <DialogFooter>
@@ -599,7 +597,7 @@ export default function StudentsPage() {
   );
 }
 
-// Sub-component for teacher assignment per subject
+// Sub-component for teacher assignment per course
 function TeacherAssignmentRow({
   subjectName,
   subjectId,
@@ -615,7 +613,7 @@ function TeacherAssignmentRow({
   onStaffChange: (staffId: string) => void;
   onLinkChange: (meetingLink: string) => void;
 }) {
-  const teachers = useQuery(api.staff.getBySubject, { subjectId });
+  const teachers = useQuery(api.staff.getByCourse, { subjectId });
 
   return (
     <div className="space-y-2 border rounded-md p-3">
@@ -645,7 +643,7 @@ function TeacherAssignmentRow({
       <Input
         value={meetingLink}
         onChange={(e) => onLinkChange(e.target.value)}
-        placeholder="Meeting link for this subject..."
+        placeholder="Meeting link for this course..."
         className="text-sm"
       />
     </div>

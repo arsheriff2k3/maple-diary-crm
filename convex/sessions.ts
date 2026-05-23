@@ -15,13 +15,13 @@ export const listByStudent = query({
     return await Promise.all(
       sessions.map(async (session) => {
         const staff = await ctx.db.get(session.staffId);
-        const subject = await ctx.db.get(session.subjectId);
+        const course = await ctx.db.get(session.subjectId);
         return {
           ...session,
           staffName: staff
             ? `${staff.firstName} ${staff.lastName}`
             : "Unknown",
-          subjectName: subject?.name ?? "Unknown",
+          subjectName: course?.name ?? "Unknown",
         };
       })
     );
@@ -56,12 +56,24 @@ export const getCalendarData = query({
       )
       .collect();
 
-    return sessions.map((s) => ({
-      date: s.scheduledAt,
-      status: s.status,
-      attendance: s.attendance,
-      sessionId: s._id,
-    }));
+    return await Promise.all(
+      sessions.map(async (s) => {
+        const staff = await ctx.db.get(s.staffId);
+        const course = await ctx.db.get(s.subjectId);
+        return {
+          date: s.scheduledAt,
+          status: s.status,
+          attendance: s.attendance,
+          sessionId: s._id,
+          subjectName: course?.name ?? "Unknown",
+          staffName: staff
+            ? `${staff.firstName} ${staff.lastName}`
+            : "Unknown",
+          duration: s.duration,
+          isBonus: s.isBonus,
+        };
+      })
+    );
   },
 });
 
@@ -103,11 +115,11 @@ export const getAvailableSlots = query({
     for (const s of studentSessions) {
       if (s.status === "cancelled") continue;
       const dur = s.duration ?? 3600000;
-      const subject = await ctx.db.get(s.subjectId);
+      const course = await ctx.db.get(s.subjectId);
       busy.push({
         start: s.scheduledAt,
         end: s.scheduledAt + dur,
-        label: `Student: ${subject?.name ?? "Class"}`,
+        label: `Student: ${course?.name ?? "Class"}`,
       });
     }
     for (const s of staffSessions) {
@@ -176,11 +188,11 @@ export const checkClash = query({
       const sessionEnd = session.scheduledAt + sessionDuration;
       if (args.scheduledAt < sessionEnd && endTime > session.scheduledAt) {
         const staff = await ctx.db.get(session.staffId);
-        const subject = await ctx.db.get(session.subjectId);
+        const course = await ctx.db.get(session.subjectId);
         return {
           hasClash: true,
           type: "student" as const,
-          message: `Student has a class (${subject?.name ?? "Unknown"} with ${staff ? `${staff.firstName} ${staff.lastName}` : "Unknown"}) at this time`,
+          message: `Student has a class (${course?.name ?? "Unknown"} with ${staff ? `${staff.firstName} ${staff.lastName}` : "Unknown"}) at this time`,
         };
       }
     }
@@ -203,11 +215,11 @@ export const checkClash = query({
       const sessionEnd = session.scheduledAt + sessionDuration;
       if (args.scheduledAt < sessionEnd && endTime > session.scheduledAt) {
         const student = await ctx.db.get(session.studentId);
-        const subject = await ctx.db.get(session.subjectId);
+        const course = await ctx.db.get(session.subjectId);
         return {
           hasClash: true,
           type: "teacher" as const,
-          message: `Teacher has a class (${subject?.name ?? "Unknown"} with ${student ? `${student.firstName} ${student.lastName}` : "Unknown"}) at this time`,
+          message: `Teacher has a class (${course?.name ?? "Unknown"} with ${student ? `${student.firstName} ${student.lastName}` : "Unknown"}) at this time`,
         };
       }
     }
@@ -362,9 +374,9 @@ export const reschedule = mutation({
       const sEnd = s.scheduledAt + sDuration;
       if (args.newScheduledAt < sEnd && endTime > s.scheduledAt) {
         const staff = await ctx.db.get(s.staffId);
-        const subject = await ctx.db.get(s.subjectId);
+        const course = await ctx.db.get(s.subjectId);
         throw new Error(
-          `Clash: Student has ${subject?.name ?? "a class"} with ${staff ? `${staff.firstName} ${staff.lastName}` : "a teacher"} at this time`
+          `Clash: Student has ${course?.name ?? "a class"} with ${staff ? `${staff.firstName} ${staff.lastName}` : "a teacher"} at this time`
         );
       }
     }
@@ -386,9 +398,9 @@ export const reschedule = mutation({
       const sEnd = s.scheduledAt + sDuration;
       if (args.newScheduledAt < sEnd && endTime > s.scheduledAt) {
         const student = await ctx.db.get(s.studentId);
-        const subject = await ctx.db.get(s.subjectId);
+        const course = await ctx.db.get(s.subjectId);
         throw new Error(
-          `Clash: Teacher has ${subject?.name ?? "a class"} with ${student ? `${student.firstName} ${student.lastName}` : "a student"} at this time`
+          `Clash: Teacher has ${course?.name ?? "a class"} with ${student ? `${student.firstName} ${student.lastName}` : "a student"} at this time`
         );
       }
     }
@@ -438,6 +450,7 @@ export const create = mutation({
     duration: v.optional(v.number()),
     meetingLink: v.string(),
     notes: v.optional(v.string()),
+    isBonus: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -505,17 +518,117 @@ export const markAttendance = mutation({
     // Update student's completed classes count
     const student = await ctx.db.get(session.studentId);
     if (student) {
-      if (isNowPresent && !wasPreviouslyPresent) {
-        await ctx.db.patch(student._id, {
-          classesCompleted: student.classesCompleted + 1,
-          updatedAt: Date.now(),
-        });
-      } else if (!isNowPresent && wasPreviouslyPresent) {
-        await ctx.db.patch(student._id, {
-          classesCompleted: Math.max(0, student.classesCompleted - 1),
-          updatedAt: Date.now(),
-        });
+      if (session.isBonus) {
+        // Bonus sessions use separate counter
+        if (isNowPresent && !wasPreviouslyPresent) {
+          await ctx.db.patch(student._id, {
+            bonusClassesCompleted: (student.bonusClassesCompleted ?? 0) + 1,
+            updatedAt: Date.now(),
+          });
+        } else if (!isNowPresent && wasPreviouslyPresent) {
+          await ctx.db.patch(student._id, {
+            bonusClassesCompleted: Math.max(0, (student.bonusClassesCompleted ?? 0) - 1),
+            updatedAt: Date.now(),
+          });
+        }
+      } else {
+        if (isNowPresent && !wasPreviouslyPresent) {
+          await ctx.db.patch(student._id, {
+            classesCompleted: student.classesCompleted + 1,
+            updatedAt: Date.now(),
+          });
+        } else if (!isNowPresent && wasPreviouslyPresent) {
+          await ctx.db.patch(student._id, {
+            classesCompleted: Math.max(0, student.classesCompleted - 1),
+            updatedAt: Date.now(),
+          });
+        }
       }
     }
+  },
+});
+
+export const getGlobalCalendarData = query({
+  args: {
+    startDate: v.number(),
+    endDate: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const sessions = await ctx.db
+      .query("sessions")
+      .withIndex("by_scheduledAt", (q) =>
+        q
+          .gte("scheduledAt", args.startDate)
+          .lte("scheduledAt", args.endDate)
+      )
+      .collect();
+
+    return await Promise.all(
+      sessions.map(async (s) => {
+        const student = await ctx.db.get(s.studentId);
+        const staff = await ctx.db.get(s.staffId);
+        const course = await ctx.db.get(s.subjectId);
+        return {
+          _id: s._id,
+          scheduledAt: s.scheduledAt,
+          status: s.status,
+          attendance: s.attendance,
+          duration: s.duration,
+          isBonus: s.isBonus,
+          studentName: student
+            ? `${student.firstName} ${student.lastName}`
+            : "Unknown",
+          staffName: staff
+            ? `${staff.firstName} ${staff.lastName}`
+            : "Unknown",
+          subjectName: course?.name ?? "Unknown",
+        };
+      })
+    );
+  },
+});
+
+export const getRecurringScheduleInfo = query({
+  args: { studentId: v.id("students") },
+  handler: async (ctx, args) => {
+    const sessions = await ctx.db
+      .query("sessions")
+      .withIndex("by_student_scheduledAt", (q) =>
+        q.eq("studentId", args.studentId)
+      )
+      .order("desc")
+      .collect();
+
+    const nonCancelled = sessions.filter((s) => s.status !== "cancelled");
+    if (nonCancelled.length === 0) return null;
+
+    const latest = nonCancelled[0];
+
+    // Infer recurring days from recent sessions
+    const recentSessions = nonCancelled.slice(0, 20);
+    const daysOfWeek = [
+      ...new Set(
+        recentSessions.map((s) => new Date(s.scheduledAt).getDay())
+      ),
+    ].sort();
+
+    const time = new Date(latest.scheduledAt);
+    const timeStr = `${String(time.getHours()).padStart(2, "0")}:${String(time.getMinutes()).padStart(2, "0")}`;
+
+    const staff = await ctx.db.get(latest.staffId);
+    const course = await ctx.db.get(latest.subjectId);
+
+    return {
+      subjectId: latest.subjectId,
+      subjectName: course?.name ?? "Unknown",
+      staffId: latest.staffId,
+      staffName: staff
+        ? `${staff.firstName} ${staff.lastName}`
+        : "Unknown",
+      daysOfWeek,
+      time: timeStr,
+      duration: latest.duration ?? 3600000,
+      meetingLink: latest.meetingLink,
+    };
   },
 });

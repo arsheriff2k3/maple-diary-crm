@@ -32,7 +32,7 @@ import { toast } from "sonner";
 
 export default function DepartmentsPage() {
   const departments = useQuery(api.departments.list);
-  const subjects = useQuery(api.subjects.list, {});
+  const courses = useQuery(api.subjects.list, {});
   const createDept = useMutation(api.departments.create);
   const updateDept = useMutation(api.departments.update);
   const removeDept = useMutation(api.departments.remove);
@@ -81,8 +81,8 @@ export default function DepartmentsPage() {
     setDeleteId(null);
   };
 
-  const getSubjectCount = (deptId: Id<"departments">) => {
-    return subjects?.filter((s) => s.departmentId === deptId).length ?? 0;
+  const getCourseCount = (deptId: Id<"departments">) => {
+    return courses?.filter((c: any) => c.departmentId === deptId).length ?? 0;
   };
 
   return (
@@ -122,7 +122,7 @@ export default function DepartmentsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Department Name</TableHead>
-                <TableHead>Subjects</TableHead>
+                <TableHead>Courses</TableHead>
                 <TableHead>Applicable to Students</TableHead>
                 <TableHead className="w-24">Actions</TableHead>
               </TableRow>
@@ -131,7 +131,7 @@ export default function DepartmentsPage() {
               {departments.map((dept) => (
                 <TableRow key={dept._id}>
                   <TableCell className="font-medium">{dept.name}</TableCell>
-                  <TableCell>{getSubjectCount(dept._id)}</TableCell>
+                  <TableCell>{getCourseCount(dept._id)}</TableCell>
                   <TableCell>
                     <Switch
                       checked={dept.visibleToStudents ?? true}

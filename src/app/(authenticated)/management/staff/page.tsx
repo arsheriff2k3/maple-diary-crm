@@ -102,16 +102,16 @@ export default function StaffPage() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [formDeptId, setFormDeptId] = useState<string>("");
-  const [formSubjectIds, setFormSubjectIds] = useState<string[]>([]);
+  const [formSubjectIds, setFormCourseIds] = useState<string[]>([]);
   const [deleteId, setDeleteId] = useState<Id<"staff"> | null>(null);
 
   const createStaff = useMutation(api.staff.create);
   const updateStaff = useMutation(api.staff.update);
   const removeStaff = useMutation(api.staff.remove);
 
-  const filteredSubjects = useMemo(() => {
+  const filteredCourses = useMemo(() => {
     if (!allSubjects || !formDeptId) return [];
-    return allSubjects.filter((s) => s.departmentId === formDeptId);
+    return allSubjects.filter((c: any) => c.departmentId === formDeptId);
   }, [allSubjects, formDeptId]);
 
   const resetForm = () => {
@@ -121,7 +121,7 @@ export default function StaffPage() {
     setEmail("");
     setPhone("");
     setFormDeptId("");
-    setFormSubjectIds([]);
+    setFormCourseIds([]);
   };
 
   const handleSubmit = async () => {
@@ -163,7 +163,7 @@ export default function StaffPage() {
     setEmail(staff.email);
     setPhone(staff.phone);
     setFormDeptId(staff.departmentId);
-    setFormSubjectIds(staff.subjectIds);
+    setFormCourseIds(staff.subjectIds);
     setFormOpen(true);
   };
 
@@ -182,7 +182,7 @@ export default function StaffPage() {
     departments?.find((d) => d._id === id)?.name ?? "";
 
   const getSubjectNames = (ids: string[]) =>
-    allSubjects?.filter((s) => ids.includes(s._id)).map((s) => s.name) ?? [];
+    allSubjects?.filter((c: any) => ids.includes(c._id)).map((c: any) => c.name) ?? [];
 
   return (
     <div>
@@ -268,7 +268,7 @@ export default function StaffPage() {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Department</TableHead>
-                  <TableHead>Subjects</TableHead>
+                  <TableHead>Courses</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Phone</TableHead>
                   <TableHead className="w-32">Actions</TableHead>
@@ -287,7 +287,7 @@ export default function StaffPage() {
                     <TableCell>{getDeptName(staff.departmentId)}</TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
-                        {getSubjectNames(staff.subjectIds).map((name) => (
+                        {getSubjectNames(staff.subjectIds).map((name: any) => (
                           <Badge key={name} variant="secondary" className="text-xs">
                             {name}
                           </Badge>
@@ -362,7 +362,7 @@ export default function StaffPage() {
                 value={formDeptId}
                 onValueChange={(v) => {
                   setFormDeptId(v ?? "");
-                  setFormSubjectIds([]);
+                  setFormCourseIds([]);
                 }}
               >
                 <SelectTrigger>
@@ -383,15 +383,15 @@ export default function StaffPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Subjects</Label>
+              <Label>Courses</Label>
               <MultiSelect
-                options={filteredSubjects.map((s) => ({
-                  value: s._id,
-                  label: s.name,
+                options={filteredCourses.map((c: any) => ({
+                  value: c._id,
+                  label: c.name,
                 }))}
                 selected={formSubjectIds}
-                onChange={setFormSubjectIds}
-                placeholder="Select subjects..."
+                onChange={setFormCourseIds}
+                placeholder="Select courses..."
               />
             </div>
             <div className="space-y-2">

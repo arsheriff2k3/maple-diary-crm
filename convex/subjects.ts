@@ -16,9 +16,9 @@ export const list = query({
     } else {
       q = ctx.db.query("subjects").withIndex("by_name");
     }
-    const subjects = await q.collect();
+    const courses = await q.collect();
 
-    const departmentIds = [...new Set(subjects.map((s) => s.departmentId))];
+    const departmentIds = [...new Set(courses.map((c) => c.departmentId))];
     const departments = await Promise.all(
       departmentIds.map((id) => ctx.db.get(id))
     );
@@ -26,9 +26,9 @@ export const list = query({
       departments.filter(Boolean).map((d) => [d!._id, d!.name])
     );
 
-    return subjects.map((s) => ({
-      ...s,
-      departmentName: deptMap.get(s.departmentId) ?? "Unknown",
+    return courses.map((c) => ({
+      ...c,
+      departmentName: deptMap.get(c.departmentId) ?? "Unknown",
     }));
   },
 });
@@ -40,12 +40,12 @@ export const listForStudents = query({
     const visibleDeptIds = new Set(
       departments.filter((d) => d.visibleToStudents !== false).map((d) => d._id)
     );
-    const subjects = await ctx.db.query("subjects").withIndex("by_name").collect();
-    return subjects
-      .filter((s) => visibleDeptIds.has(s.departmentId))
-      .map((s) => ({
-        ...s,
-        departmentName: departments.find((d) => d._id === s.departmentId)?.name ?? "Unknown",
+    const courses = await ctx.db.query("subjects").withIndex("by_name").collect();
+    return courses
+      .filter((c) => visibleDeptIds.has(c.departmentId))
+      .map((c) => ({
+        ...c,
+        departmentName: departments.find((d) => d._id === c.departmentId)?.name ?? "Unknown",
       }));
   },
 });
@@ -103,22 +103,22 @@ export const update = mutation({
 export const remove = mutation({
   args: { id: v.id("subjects") },
   handler: async (ctx, args) => {
-    const staffWithSubject = await ctx.db.query("staff").collect();
-    const hasStaff = staffWithSubject.some(
+    const staffWithCourse = await ctx.db.query("staff").collect();
+    const hasStaff = staffWithCourse.some(
       (s) => s.isActive && s.subjectIds.includes(args.id)
     );
     if (hasStaff) {
       throw new Error(
-        "Cannot delete: staff members are assigned to this subject."
+        "Cannot delete: staff members are assigned to this course."
       );
     }
-    const studentsWithSubject = await ctx.db.query("students").collect();
-    const hasStudents = studentsWithSubject.some(
+    const studentsWithCourse = await ctx.db.query("students").collect();
+    const hasStudents = studentsWithCourse.some(
       (s) => s.isActive && s.subjectIds.includes(args.id)
     );
     if (hasStudents) {
       throw new Error(
-        "Cannot delete: students are enrolled in this subject."
+        "Cannot delete: students are enrolled in this course."
       );
     }
     await ctx.db.delete(args.id);

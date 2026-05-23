@@ -130,7 +130,7 @@ export default function StudentDetailPage({
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <BookOpen className="h-5 w-5" />
-              Subjects & Teachers
+              Courses & Teachers
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -160,19 +160,19 @@ export default function StudentDetailPage({
                   </div>
                 </div>
               ))}
-              {student.subjects
+              {student.courses
                 .filter(
-                  (s) =>
+                  (c) =>
                     !student.teacherDetails.find(
-                      (td) => td.subjectId === s._id
+                      (td) => td.subjectId === c._id
                     )
                 )
-                .map((s) => (
+                .map((c) => (
                   <div
-                    key={s._id}
+                    key={c._id}
                     className="flex items-center justify-between py-2 border-b last:border-0"
                   >
-                    <Badge variant="secondary">{s.name}</Badge>
+                    <Badge variant="secondary">{c.name}</Badge>
                     <span className="text-sm text-muted-foreground">
                       No teacher assigned
                     </span>

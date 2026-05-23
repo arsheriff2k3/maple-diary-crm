@@ -67,13 +67,13 @@ export const toggleVisibility = mutation({
 export const remove = mutation({
   args: { id: v.id("departments") },
   handler: async (ctx, args) => {
-    const subjects = await ctx.db
+    const courses = await ctx.db
       .query("subjects")
       .withIndex("by_department", (q) => q.eq("departmentId", args.id))
       .collect();
-    if (subjects.length > 0) {
+    if (courses.length > 0) {
       throw new Error(
-        `Cannot delete: ${subjects.length} subject(s) belong to this department. Remove them first.`
+        `Cannot delete: ${courses.length} course(s) belong to this department. Remove them first.`
       );
     }
     const staff = await ctx.db

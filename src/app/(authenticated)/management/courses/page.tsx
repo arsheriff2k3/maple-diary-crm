@@ -36,18 +36,18 @@ import { BookOpen, Plus, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-export default function SubjectsPage() {
+export default function CoursesPage() {
   const departments = useQuery(api.departments.list);
   const [filterDept, setFilterDept] = useState<string>("all");
-  const subjects = useQuery(
+  const courses = useQuery(
     api.subjects.list,
     filterDept !== "all"
       ? { departmentId: filterDept as Id<"departments"> }
       : {}
   );
-  const createSubject = useMutation(api.subjects.create);
-  const updateSubject = useMutation(api.subjects.update);
-  const removeSubject = useMutation(api.subjects.remove);
+  const createCourse = useMutation(api.subjects.create);
+  const updateCourse = useMutation(api.subjects.update);
+  const removeCourse = useMutation(api.subjects.remove);
 
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<Id<"subjects"> | null>(null);
@@ -62,18 +62,18 @@ export default function SubjectsPage() {
     }
     try {
       if (editingId) {
-        await updateSubject({
+        await updateCourse({
           id: editingId,
           name: name.trim(),
           departmentId: departmentId as Id<"departments">,
         });
-        toast.success("Subject updated");
+        toast.success("Course updated");
       } else {
-        await createSubject({
+        await createCourse({
           name: name.trim(),
           departmentId: departmentId as Id<"departments">,
         });
-        toast.success("Subject created");
+        toast.success("Course created");
       }
       setFormOpen(false);
       setEditingId(null);
@@ -84,18 +84,18 @@ export default function SubjectsPage() {
     }
   };
 
-  const handleEdit = (subject: any) => {
-    setEditingId(subject._id);
-    setName(subject.name);
-    setDepartmentId(subject.departmentId);
+  const handleEdit = (course: any) => {
+    setEditingId(course._id);
+    setName(course.name);
+    setDepartmentId(course.departmentId);
     setFormOpen(true);
   };
 
   const handleDelete = async () => {
     if (!deleteId) return;
     try {
-      await removeSubject({ id: deleteId });
-      toast.success("Subject deleted");
+      await removeCourse({ id: deleteId });
+      toast.success("Course deleted");
     } catch (err: any) {
       toast.error(err.message);
     }
@@ -105,8 +105,8 @@ export default function SubjectsPage() {
   return (
     <div>
       <PageHeader
-        title="Subjects"
-        description="Manage subjects within departments"
+        title="Courses"
+        description="Manage courses within departments"
         action={
           <Button
             onClick={() => {
@@ -117,7 +117,7 @@ export default function SubjectsPage() {
             }}
           >
             <Plus className="h-4 w-4 mr-2" />
-            Add Subject
+            Add Course
           </Button>
         }
       />
@@ -144,48 +144,48 @@ export default function SubjectsPage() {
         </Select>
       </div>
 
-      {!subjects ? (
+      {!courses ? (
         <div className="space-y-2">
           {[1, 2, 3].map((i) => (
             <Skeleton key={i} className="h-12" />
           ))}
         </div>
-      ) : subjects.length === 0 ? (
+      ) : courses.length === 0 ? (
         <EmptyState
           icon={BookOpen}
-          title="No subjects yet"
-          description="Create your first subject to get started"
+          title="No courses yet"
+          description="Create your first course to get started"
         />
       ) : (
         <div className="border rounded-lg">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Subject Name</TableHead>
+                <TableHead>Course Name</TableHead>
                 <TableHead>Department</TableHead>
                 <TableHead className="w-24">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {subjects.map((subject) => (
-                <TableRow key={subject._id}>
-                  <TableCell className="font-medium">{subject.name}</TableCell>
+              {courses.map((course: any) => (
+                <TableRow key={course._id}>
+                  <TableCell className="font-medium">{course.name}</TableCell>
                   <TableCell>
-                    <Badge variant="secondary">{subject.departmentName}</Badge>
+                    <Badge variant="secondary">{course.departmentName}</Badge>
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1">
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleEdit(subject)}
+                        onClick={() => handleEdit(course)}
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => setDeleteId(subject._id)}
+                        onClick={() => setDeleteId(course._id)}
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
@@ -203,12 +203,12 @@ export default function SubjectsPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {editingId ? "Edit Subject" : "Add Subject"}
+              {editingId ? "Edit Course" : "Add Course"}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <Input
-              placeholder="Subject name"
+              placeholder="Course name"
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
@@ -245,8 +245,8 @@ export default function SubjectsPage() {
       <ConfirmDialog
         open={!!deleteId}
         onOpenChange={() => setDeleteId(null)}
-        title="Delete Subject"
-        description="This will permanently delete this subject. Make sure no staff or students are assigned to it."
+        title="Delete Course"
+        description="This will permanently delete this course. Make sure no staff or students are assigned to it."
         onConfirm={handleDelete}
         confirmLabel="Delete"
       />
