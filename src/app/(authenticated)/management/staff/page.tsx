@@ -1,6 +1,6 @@
 "use client";
 
-import { usePaginatedQuery, useQuery, useMutation } from "convex/react";
+import { usePaginatedQuery, useQuery, useMutation, useAction } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
 import PageHeader from "@/components/shared/PageHeader";
@@ -105,7 +105,7 @@ export default function StaffPage() {
   const [formSubjectIds, setFormCourseIds] = useState<string[]>([]);
   const [deleteId, setDeleteId] = useState<Id<"staff"> | null>(null);
 
-  const createStaff = useMutation(api.staff.create);
+  const createStaff = useAction(api.staffActions.createWithCredentials);
   const updateStaff = useMutation(api.staff.update);
   const removeStaff = useMutation(api.staff.remove);
 
@@ -147,7 +147,7 @@ export default function StaffPage() {
         toast.success("Staff updated");
       } else {
         await createStaff(data);
-        toast.success("Staff created");
+        toast.success("Staff created — login credentials sent to their email");
       }
       setFormOpen(false);
       resetForm();

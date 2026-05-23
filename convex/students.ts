@@ -179,9 +179,30 @@ export const create = mutation({
       throw new Error("A student with this email already exists");
     }
 
+    // Generate sequential Student ID
+    let counter = await ctx.db
+      .query("counters")
+      .withIndex("by_name", (q) => q.eq("name", "student_id"))
+      .first();
+
+    let nextValue: number;
+    if (!counter) {
+      nextValue = 1;
+      await ctx.db.insert("counters", {
+        name: "student_id",
+        value: 1,
+      });
+    } else {
+      nextValue = counter.value + 1;
+      await ctx.db.patch(counter._id, { value: nextValue });
+    }
+
+    const studentId = `STU-${String(nextValue).padStart(4, "0")}`;
+
     const now = Date.now();
     return await ctx.db.insert("students", {
       ...args,
+      studentId,
       classesCompleted: 0,
       bonusClassesCompleted: 0,
       packageStartDate: args.packageStartDate ?? now,

@@ -1,11 +1,10 @@
 "use node";
 
-import { action, internalAction } from "./_generated/server";
+import { action } from "./_generated/server";
 import { v } from "convex/values";
 import { hashPassword, generateRandomPassword } from "./lib/auth";
 
-// Use internalAction to avoid circular type reference with `internal` API import
-export const createWithCredentials: any = internalAction({
+export const createWithCredentials = action({
   args: {
     firstName: v.string(),
     lastName: v.string(),
@@ -19,7 +18,7 @@ export const createWithCredentials: any = internalAction({
     const password = generateRandomPassword();
     const passwordHash = await hashPassword(password);
 
-    const { internal } = await import("./_generated/api");
+    const { internal } = (await import("./_generated/api")) as any;
 
     const staffId = await ctx.runMutation(
       internal.staffInternal.createStaff,
