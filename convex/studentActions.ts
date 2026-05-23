@@ -3,7 +3,7 @@
 import { internalAction } from "./_generated/server";
 import { v } from "convex/values";
 
-export const createWithStudentId = internalAction({
+export const createWithStudentId: any = internalAction({
   args: {
     firstName: v.string(),
     lastName: v.string(),

@@ -5,7 +5,7 @@ import { v } from "convex/values";
 import { hashPassword, generateRandomPassword } from "./lib/auth";
 
 // Use internalAction to avoid circular type reference with `internal` API import
-export const createWithCredentials = internalAction({
+export const createWithCredentials: any = internalAction({
   args: {
     firstName: v.string(),
     lastName: v.string(),

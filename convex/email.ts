@@ -1,6 +1,6 @@
 "use node";
 
-import { action } from "./_generated/server";
+import { internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import { Resend } from "resend";
 
@@ -12,7 +12,7 @@ const getResend = () => {
 
 const getAppUrl = () => process.env.APP_URL || "http://localhost:3000";
 
-export const sendTeacherCredentials = action({
+export const sendTeacherCredentials = internalAction({
   args: {
     email: v.string(),
     firstName: v.string(),
@@ -36,7 +36,7 @@ export const sendTeacherCredentials = action({
   },
 });
 
-export const sendStudentCredentials = action({
+export const sendStudentCredentials = internalAction({
   args: {
     email: v.string(),
     firstName: v.string(),
@@ -60,7 +60,7 @@ export const sendStudentCredentials = action({
   },
 });
 
-export const sendPasswordResetLink = action({
+export const sendPasswordResetLink = internalAction({
   args: {
     email: v.string(),
     firstName: v.string(),
@@ -84,7 +84,7 @@ export const sendPasswordResetLink = action({
   },
 });
 
-export const sendStudentIdReminder = action({
+export const sendStudentIdReminder = internalAction({
   args: {
     email: v.string(),
     firstName: v.string(),
