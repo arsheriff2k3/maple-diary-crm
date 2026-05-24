@@ -6,6 +6,7 @@ export const createStudent = internalMutation({
     firstName: v.string(),
     lastName: v.string(),
     email: v.string(),
+    countryCode: v.optional(v.string()),
     phone: v.optional(v.string()),
     subjectIds: v.array(v.id("subjects")),
     region: v.string(),

@@ -18,13 +18,12 @@ export default function TeacherStudentDetailPage({
   params: Promise<{ studentId: string }>;
 }) {
   const { studentId } = use(params);
-  const { staffId, selectedSubjectId } = useTeacherAuth();
+  const { selectedSubjectId } = useTeacherAuth();
 
   const student = useQuery(
     api.teacherPortal.getStudentProfile,
-    staffId && selectedSubjectId
+    selectedSubjectId
       ? {
-          staffId: staffId as Id<"staff">,
           studentId: studentId as Id<"students">,
           subjectId: selectedSubjectId as Id<"subjects">,
         }

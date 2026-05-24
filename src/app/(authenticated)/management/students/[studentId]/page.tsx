@@ -18,6 +18,7 @@ import {
   Video,
   BookOpen,
   Users,
+  KeyRound,
 } from "lucide-react";
 import Link from "next/link";
 import { use } from "react";
@@ -75,6 +76,25 @@ export default function StudentDetailPage({
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {student.studentId && (
+              <div className="bg-muted/50 border rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <KeyRound className="h-4 w-4 text-primary" />
+                  <p className="text-sm font-medium">Student Login Credentials</p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Student ID: </span>
+                    <span className="font-mono font-medium">{student.studentId}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Phone: </span>
+                    <span className="font-mono">{student.phone || "Not set"}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex items-center gap-3">
                 <Mail className="h-4 w-4 text-muted-foreground" />

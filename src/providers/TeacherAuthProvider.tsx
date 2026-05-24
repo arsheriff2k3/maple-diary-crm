@@ -1,7 +1,18 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+  useCallback,
+} from "react";
 import { useRouter } from "next/navigation";
+import { useQuery } from "convex/react";
+import { useAuthActions } from "@convex-dev/auth/react";
+import { useConvexAuth } from "@convex-dev/auth/react";
+import { api } from "../../convex/_generated/api";
 
 interface TeacherProfile {
   _id: string;
@@ -15,7 +26,6 @@ interface TeacherProfile {
 
 interface TeacherAuthContextType {
   staffId: string | null;
-  token: string | null;
   profile: TeacherProfile | null;
   selectedSubjectId: string;
   setSelectedCourseId: (id: string) => void;
@@ -25,7 +35,6 @@ interface TeacherAuthContextType {
 
 const TeacherAuthContext = createContext<TeacherAuthContextType>({
   staffId: null,
-  token: null,
   profile: null,
   selectedSubjectId: "",
   setSelectedCourseId: () => {},
@@ -37,83 +46,66 @@ export function useTeacherAuth() {
   return useContext(TeacherAuthContext);
 }
 
-function getCookie(name: string): string | null {
-  const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`));
-  return match ? decodeURIComponent(match[2]) : null;
-}
-
-function parseJWT(token: string): any {
-  try {
-    const payload = token.split(".")[1];
-    return JSON.parse(atob(payload));
-  } catch {
-    return null;
-  }
-}
-
 export default function TeacherAuthProvider({
   children,
 }: {
   children: ReactNode;
 }) {
   const router = useRouter();
-  const [token, setToken] = useState<string | null>(null);
-  const [profile, setProfile] = useState<TeacherProfile | null>(null);
+  const { signOut } = useAuthActions();
+  const { isAuthenticated, isLoading } = useConvexAuth();
   const [selectedSubjectId, setSelectedCourseId] = useState("");
-  const [loading, setLoading] = useState(true);
+
+  // Fetch current user to get staffId
+  const currentUser = useQuery(api.users.currentUser);
+
+  // Fetch staff profile once we have staffId
+  const staffProfile = useQuery(
+    api.staff.getById,
+    currentUser?.staffId ? { id: currentUser.staffId } : "skip"
+  );
 
   useEffect(() => {
-    const cookieToken = getCookie("maple_teacher_token");
-    if (!cookieToken) {
-      setLoading(false);
+    if (!isLoading && !isAuthenticated) {
       router.push("/teacher/login");
       return;
     }
-
-    const payload = parseJWT(cookieToken);
-    if (!payload || payload.role !== "teacher") {
-      setLoading(false);
+    // Redirect if authenticated but not a teacher
+    if (currentUser && currentUser.role !== "teacher") {
       router.push("/teacher/login");
-      return;
     }
+  }, [isLoading, isAuthenticated, currentUser, router]);
 
-    // Check expiry
-    if (payload.exp && payload.exp * 1000 < Date.now()) {
-      setLoading(false);
-      router.push("/teacher/login");
-      return;
+  // Set default subject
+  useEffect(() => {
+    if (staffProfile && staffProfile.subjectIds.length > 0 && !selectedSubjectId) {
+      setSelectedCourseId(staffProfile.subjectIds[0]);
     }
+  }, [staffProfile, selectedSubjectId]);
 
-    setToken(cookieToken);
-
-    // Profile is stored after login - read from sessionStorage
-    const cached = sessionStorage.getItem("maple_teacher_profile");
-    if (cached) {
-      const p = JSON.parse(cached) as TeacherProfile;
-      setProfile(p);
-      if (p.subjectIds.length > 0 && !selectedSubjectId) {
-        setSelectedCourseId(p.subjectIds[0]);
+  const profile: TeacherProfile | null = staffProfile
+    ? {
+        _id: staffProfile._id,
+        firstName: staffProfile.firstName,
+        lastName: staffProfile.lastName,
+        email: staffProfile.email,
+        subjectIds: staffProfile.subjectIds,
+        departmentId: staffProfile.departmentId,
+        timezone: staffProfile.timezone,
       }
-    }
-
-    setLoading(false);
-  }, []);
+    : null;
 
   const logout = useCallback(async () => {
-    await fetch("/api/auth/teacher/logout", { method: "POST" });
-    sessionStorage.removeItem("maple_teacher_profile");
-    setToken(null);
-    setProfile(null);
+    await signOut();
     router.push("/teacher/login");
-  }, [router]);
+  }, [signOut, router]);
 
-  const staffId = profile?._id ?? null;
+  const loading = isLoading || (isAuthenticated && !staffProfile);
 
   return (
     <TeacherAuthContext.Provider
       value={{
-        staffId,
-        token,
+        staffId: currentUser?.staffId ?? null,
         profile,
         selectedSubjectId,
         setSelectedCourseId,

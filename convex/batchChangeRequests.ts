@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { getAuthUserId } from "@convex-dev/auth/server";
 
 export const listPending = query({
   args: {},
@@ -49,7 +50,6 @@ export const listAll = query({
 
 export const create = mutation({
   args: {
-    staffId: v.id("staff"),
     sessionId: v.optional(v.id("sessions")),
     requestType: v.union(
       v.literal("reschedule"),
@@ -61,8 +61,14 @@ export const create = mutation({
     proposedDate: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+    const user = await ctx.db.get(userId);
+    if (!user?.staffId) throw new Error("Unauthorized");
+
     const now = Date.now();
     return await ctx.db.insert("batchChangeRequests", {
+      staffId: user.staffId,
       ...args,
       status: "pending",
       createdAt: now,

@@ -1,26 +1,32 @@
 import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
+import { query } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
+import { getAuthUserId } from "@convex-dev/auth/server";
+
+async function requireTeacherAuth(ctx: any): Promise<Id<"staff">> {
+  const userId = await getAuthUserId(ctx);
+  if (!userId) throw new Error("Not authenticated");
+  const user = await ctx.db.get(userId);
+  if (!user || user.role !== "teacher" || !user.staffId)
+    throw new Error("Unauthorized: teacher access required");
+  return user.staffId as Id<"staff">;
+}
 
 export const getMyStudents = query({
-  args: {
-    staffId: v.id("staff"),
-    subjectId: v.id("subjects"),
-  },
+  args: { subjectId: v.id("subjects") },
   handler: async (ctx, args) => {
-    const allStudents = await ctx.db
-      .query("students")
-      .collect();
+    const staffId = await requireTeacherAuth(ctx);
 
+    const allStudents = await ctx.db.query("students").collect();
     const students = allStudents.filter((s) =>
       s.teacherAssignments.some(
-        (ta) => ta.staffId === args.staffId && ta.subjectId === args.subjectId
+        (ta) => ta.staffId === staffId && ta.subjectId === args.subjectId
       )
     );
 
     return students.map((s) => {
       const assignment = s.teacherAssignments.find(
-        (ta) => ta.staffId === args.staffId && ta.subjectId === args.subjectId
+        (ta) => ta.staffId === staffId && ta.subjectId === args.subjectId
       );
       return {
         _id: s._id,
@@ -37,16 +43,15 @@ export const getMyStudents = query({
 });
 
 export const getUpcomingSessions = query({
-  args: {
-    staffId: v.id("staff"),
-    subjectId: v.id("subjects"),
-  },
+  args: { subjectId: v.id("subjects") },
   handler: async (ctx, args) => {
+    const staffId = await requireTeacherAuth(ctx);
+
     const now = Date.now();
     const sessions = await ctx.db
       .query("sessions")
       .withIndex("by_staff_scheduledAt", (q) =>
-        q.eq("staffId", args.staffId).gte("scheduledAt", now)
+        q.eq("staffId", staffId).gte("scheduledAt", now)
       )
       .collect();
 
@@ -75,26 +80,26 @@ export const getUpcomingSessions = query({
 
 export const getStudentProfile = query({
   args: {
-    staffId: v.id("staff"),
     studentId: v.id("students"),
     subjectId: v.id("subjects"),
   },
   handler: async (ctx, args) => {
+    const staffId = await requireTeacherAuth(ctx);
+
     const student = await ctx.db.get(args.studentId);
     if (!student) return null;
 
     const course = await ctx.db.get(args.subjectId);
     const assignment = student.teacherAssignments.find(
-      (ta) => ta.staffId === args.staffId && ta.subjectId === args.subjectId
+      (ta) => ta.staffId === staffId && ta.subjectId === args.subjectId
     );
 
-    // Get session stats for this course
     const sessions = await ctx.db
       .query("sessions")
       .withIndex("by_student", (q) => q.eq("studentId", args.studentId))
       .collect();
     const courseSessions = sessions.filter(
-      (s) => s.subjectId === args.subjectId && s.staffId === args.staffId
+      (s) => s.subjectId === args.subjectId && s.staffId === staffId
     );
     const completed = courseSessions.filter(
       (s) => s.attendance === "present" || s.attendance === "absent"
@@ -120,14 +125,13 @@ export const getStudentProfile = query({
 });
 
 export const getSessionsForAttendance = query({
-  args: {
-    staffId: v.id("staff"),
-    subjectId: v.id("subjects"),
-  },
+  args: { subjectId: v.id("subjects") },
   handler: async (ctx, args) => {
+    const staffId = await requireTeacherAuth(ctx);
+
     const sessions = await ctx.db
       .query("sessions")
-      .withIndex("by_staff_scheduledAt", (q) => q.eq("staffId", args.staffId))
+      .withIndex("by_staff_scheduledAt", (q) => q.eq("staffId", staffId))
       .order("desc")
       .collect();
 
@@ -158,11 +162,12 @@ export const getSessionsForAttendance = query({
 
 export const getAttendanceHistory = query({
   args: {
-    staffId: v.id("staff"),
     studentId: v.id("students"),
     subjectId: v.id("subjects"),
   },
   handler: async (ctx, args) => {
+    const staffId = await requireTeacherAuth(ctx);
+
     const sessions = await ctx.db
       .query("sessions")
       .withIndex("by_student_scheduledAt", (q) =>
@@ -173,7 +178,7 @@ export const getAttendanceHistory = query({
 
     return sessions
       .filter(
-        (s) => s.subjectId === args.subjectId && s.staffId === args.staffId
+        (s) => s.subjectId === args.subjectId && s.staffId === staffId
       )
       .map((s) => ({
         _id: s._id,
@@ -187,11 +192,13 @@ export const getAttendanceHistory = query({
 });
 
 export const getMyBatchRequests = query({
-  args: { staffId: v.id("staff") },
-  handler: async (ctx, args) => {
+  args: {},
+  handler: async (ctx) => {
+    const staffId = await requireTeacherAuth(ctx);
+
     return await ctx.db
       .query("batchChangeRequests")
-      .withIndex("by_staff", (q) => q.eq("staffId", args.staffId))
+      .withIndex("by_staff", (q) => q.eq("staffId", staffId))
       .order("desc")
       .collect();
   },

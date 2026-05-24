@@ -1,10 +1,23 @@
 import { v } from "convex/values";
 import { query } from "./_generated/server";
+import { Id } from "./_generated/dataModel";
+import { getAuthUserId } from "@convex-dev/auth/server";
+
+async function requireStudentAuth(ctx: any): Promise<Id<"students">> {
+  const userId = await getAuthUserId(ctx);
+  if (!userId) throw new Error("Not authenticated");
+  const user = await ctx.db.get(userId);
+  if (!user || user.role !== "student" || !user.studentDocId)
+    throw new Error("Unauthorized: student access required");
+  return user.studentDocId as Id<"students">;
+}
 
 export const getMyDashboard = query({
-  args: { studentId: v.id("students") },
-  handler: async (ctx, args) => {
-    const student = await ctx.db.get(args.studentId);
+  args: {},
+  handler: async (ctx) => {
+    const studentId = await requireStudentAuth(ctx);
+
+    const student = await ctx.db.get(studentId);
     if (!student) return null;
 
     const courses = await Promise.all(
@@ -16,10 +29,9 @@ export const getMyDashboard = query({
         const staff = await ctx.db.get(ta.staffId);
         const course = await ctx.db.get(ta.subjectId);
 
-        // Get session stats for this course-teacher combo
         const sessions = await ctx.db
           .query("sessions")
-          .withIndex("by_student", (q) => q.eq("studentId", args.studentId))
+          .withIndex("by_student", (q) => q.eq("studentId", studentId))
           .collect();
         const comboSessions = sessions.filter(
           (s) => s.subjectId === ta.subjectId && s.staffId === ta.staffId
@@ -64,16 +76,17 @@ export const getMyDashboard = query({
 
 export const getMyCalendar = query({
   args: {
-    studentId: v.id("students"),
     startDate: v.number(),
     endDate: v.number(),
   },
   handler: async (ctx, args) => {
+    const studentId = await requireStudentAuth(ctx);
+
     const sessions = await ctx.db
       .query("sessions")
       .withIndex("by_student_scheduledAt", (q) =>
         q
-          .eq("studentId", args.studentId)
+          .eq("studentId", studentId)
           .gte("scheduledAt", args.startDate)
           .lte("scheduledAt", args.endDate)
       )
@@ -103,13 +116,15 @@ export const getMyCalendar = query({
 });
 
 export const getUpcomingSessions = query({
-  args: { studentId: v.id("students") },
-  handler: async (ctx, args) => {
+  args: {},
+  handler: async (ctx) => {
+    const studentId = await requireStudentAuth(ctx);
+
     const now = Date.now();
     const sessions = await ctx.db
       .query("sessions")
       .withIndex("by_student_scheduledAt", (q) =>
-        q.eq("studentId", args.studentId).gte("scheduledAt", now)
+        q.eq("studentId", studentId).gte("scheduledAt", now)
       )
       .collect();
 
@@ -137,14 +152,15 @@ export const getUpcomingSessions = query({
 
 export const getMyAttendance = query({
   args: {
-    studentId: v.id("students"),
     subjectId: v.optional(v.id("subjects")),
   },
   handler: async (ctx, args) => {
+    const studentId = await requireStudentAuth(ctx);
+
     const sessions = await ctx.db
       .query("sessions")
       .withIndex("by_student_scheduledAt", (q) =>
-        q.eq("studentId", args.studentId)
+        q.eq("studentId", studentId)
       )
       .order("desc")
       .collect();

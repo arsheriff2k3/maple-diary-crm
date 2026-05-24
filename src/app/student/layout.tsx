@@ -1,9 +1,9 @@
 import ConvexAuthAppProvider from "@/providers/ConvexAuthAppProvider";
 
-export default function SignInLayout({
+export default function StudentLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return <ConvexAuthAppProvider>{children}</ConvexAuthAppProvider>;
+  return <ConvexAuthAppProvider portal="student">{children}</ConvexAuthAppProvider>;
 }

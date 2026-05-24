@@ -27,27 +27,23 @@ import { useState } from "react";
 import { format } from "date-fns";
 
 export default function StudentAttendancePage() {
-  const { studentDocId, loading } = useStudentAuth();
+  const { loading } = useStudentAuth();
   const [filterCourse, setFilterCourse] = useState<string>("all");
 
   const dashboard = useQuery(
     api.studentPortal.getMyDashboard,
-    studentDocId
-      ? { studentId: studentDocId as Id<"students"> }
-      : "skip"
+    loading ? "skip" : {}
   );
 
   const attendance = useQuery(
     api.studentPortal.getMyAttendance,
-    studentDocId
-      ? {
-          studentId: studentDocId as Id<"students">,
-          subjectId:
-            filterCourse !== "all"
-              ? (filterCourse as Id<"subjects">)
-              : undefined,
+    loading
+      ? "skip"
+      : {
+          ...(filterCourse !== "all"
+            ? { subjectId: filterCourse as Id<"subjects"> }
+            : {}),
         }
-      : "skip"
   );
 
   if (loading) {

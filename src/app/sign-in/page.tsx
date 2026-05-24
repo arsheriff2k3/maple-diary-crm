@@ -7,15 +7,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import Link from "next/link";
 
-export default function StudentLoginPage() {
+export default function AdminSignInPage() {
   const router = useRouter();
   const { signIn } = useAuthActions();
-  const [studentId, setStudentId] = useState("");
-  const [emailOrPhone, setEmailOrPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,10 +23,18 @@ export default function StudentLoginPage() {
     setLoading(true);
 
     try {
-      await signIn("student", { studentId, emailOrPhone });
-      router.push("/student/dashboard");
+      await signIn("admin", {
+        email,
+        password,
+        flow: isSignUp ? "signUp" : "signIn",
+      });
+      router.push("/dashboard");
     } catch {
-      setError("Invalid Student ID or email/phone");
+      setError(
+        isSignUp
+          ? "Sign up failed. Email may already be registered."
+          : "Invalid email or password"
+      );
       setLoading(false);
     }
   };
@@ -35,7 +43,7 @@ export default function StudentLoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-muted">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Student Login</CardTitle>
+          <CardTitle className="text-2xl">Admin Login</CardTitle>
           <p className="text-sm text-muted-foreground mt-1">
             Maple Diary Education Platform
           </p>
@@ -48,33 +56,45 @@ export default function StudentLoginPage() {
               </div>
             )}
             <div className="space-y-2">
-              <Label>Student ID</Label>
+              <Label>Email</Label>
               <Input
-                value={studentId}
-                onChange={(e) => setStudentId(e.target.value)}
-                placeholder="STU-0001"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="admin@example.com"
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label>Email or Phone Number</Label>
+              <Label>Password</Label>
               <Input
-                value={emailOrPhone}
-                onChange={(e) => setEmailOrPhone(e.target.value)}
-                placeholder="name@gmail.com or 9876543210"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
                 required
               />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Signing in..." : "Sign In"}
+              {loading
+                ? "Signing in..."
+                : isSignUp
+                  ? "Create Account"
+                  : "Sign In"}
             </Button>
             <div className="text-center">
-              <Link
-                href="/student/forgot-id"
+              <button
+                type="button"
+                onClick={() => {
+                  setIsSignUp(!isSignUp);
+                  setError("");
+                }}
                 className="text-sm text-primary hover:underline"
               >
-                Forgot Student ID?
-              </Link>
+                {isSignUp
+                  ? "Already have an account? Sign In"
+                  : "First time? Create Admin Account"}
+              </button>
             </div>
           </form>
         </CardContent>

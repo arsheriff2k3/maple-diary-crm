@@ -1,4 +1,3 @@
-import ConvexPortalProvider from "@/providers/ConvexPortalProvider";
 import TeacherAuthProvider from "@/providers/TeacherAuthProvider";
 import TeacherSidebar from "@/components/layout/TeacherSidebar";
 import TeacherHeader from "@/components/layout/TeacherHeader";
@@ -9,16 +8,14 @@ export default function TeacherPortalLayout({
   children: React.ReactNode;
 }) {
   return (
-    <ConvexPortalProvider>
-      <TeacherAuthProvider>
-        <div className="flex h-screen overflow-hidden">
-          <TeacherSidebar />
-          <div className="flex-1 flex flex-col overflow-hidden">
-            <TeacherHeader />
-            <main className="flex-1 overflow-y-auto p-6">{children}</main>
-          </div>
+    <TeacherAuthProvider>
+      <div className="flex h-screen overflow-hidden">
+        <TeacherSidebar />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <TeacherHeader />
+          <main className="flex-1 overflow-y-auto p-6">{children}</main>
         </div>
-      </TeacherAuthProvider>
-    </ConvexPortalProvider>
+      </div>
+    </TeacherAuthProvider>
   );
 }

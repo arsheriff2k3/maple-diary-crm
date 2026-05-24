@@ -2,7 +2,6 @@
 
 import { useQuery } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
-import { Id } from "../../../../../convex/_generated/dataModel";
 import { useStudentAuth } from "@/providers/StudentAuthProvider";
 import PageHeader from "@/components/shared/PageHeader";
 import StatCard from "@/components/shared/StatCard";
@@ -44,14 +43,12 @@ const COURSE_COLORS = [
 ];
 
 export default function StudentDashboardPage() {
-  const { studentDocId, loading } = useStudentAuth();
+  const { loading } = useStudentAuth();
   const [calendarMonth, setCalendarMonth] = useState(new Date());
 
   const dashboard = useQuery(
     api.studentPortal.getMyDashboard,
-    studentDocId
-      ? { studentId: studentDocId as Id<"students"> }
-      : "skip"
+    loading ? "skip" : {}
   );
 
   const monthStart = useMemo(() => startOfMonth(calendarMonth), [calendarMonth]);
@@ -59,20 +56,17 @@ export default function StudentDashboardPage() {
 
   const calendarData = useQuery(
     api.studentPortal.getMyCalendar,
-    studentDocId
-      ? {
-          studentId: studentDocId as Id<"students">,
+    loading
+      ? "skip"
+      : {
           startDate: monthStart.getTime(),
           endDate: monthEnd.getTime(),
         }
-      : "skip"
   );
 
   const upcoming = useQuery(
     api.studentPortal.getUpcomingSessions,
-    studentDocId
-      ? { studentId: studentDocId as Id<"students"> }
-      : "skip"
+    loading ? "skip" : {}
   );
 
   const calendarDays = useMemo(

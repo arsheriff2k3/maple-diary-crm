@@ -1,8 +1,8 @@
 "use client";
 
-import { useQuery, useMutation } from "convex/react";
+import { useQuery } from "convex/react";
+import { useApiMutation } from "@/hooks/useApiMutation";
 import { api } from "../../../../../convex/_generated/api";
-import { Id } from "../../../../../convex/_generated/dataModel";
 import { useTeacherAuth } from "@/providers/TeacherAuthProvider";
 import PageHeader from "@/components/shared/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,13 +32,10 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 
 export default function BatchRequestsPage() {
-  const { staffId, loading } = useTeacherAuth();
-  const createRequest = useMutation(api.batchChangeRequests.create);
+  const { loading } = useTeacherAuth();
+  const createRequest = useApiMutation(api.batchChangeRequests.create);
 
-  const requests = useQuery(
-    api.teacherPortal.getMyBatchRequests,
-    staffId ? { staffId: staffId as Id<"staff"> } : "skip"
-  );
+  const requests = useQuery(api.teacherPortal.getMyBatchRequests, {});
 
   const [formOpen, setFormOpen] = useState(false);
   const [requestType, setRequestType] = useState<string>("reschedule");
@@ -48,7 +45,7 @@ export default function BatchRequestsPage() {
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async () => {
-    if (!staffId || !description.trim()) {
+    if (!description.trim()) {
       toast.error("Description is required");
       return;
     }
@@ -63,7 +60,6 @@ export default function BatchRequestsPage() {
       }
 
       await createRequest({
-        staffId: staffId as Id<"staff">,
         requestType: requestType as any,
         description: description.trim(),
         proposedDate: proposedTimestamp,
@@ -73,8 +69,8 @@ export default function BatchRequestsPage() {
       setDescription("");
       setProposedDate("");
       setProposedTime("");
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch {
+      // Error toast handled by useApiMutation
     }
     setSubmitting(false);
   };

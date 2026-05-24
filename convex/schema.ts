@@ -1,7 +1,26 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { authTables } from "@convex-dev/auth/server";
 
 export default defineSchema({
+  ...authTables,
+  // Override users table with custom fields
+  users: defineTable({
+    name: v.optional(v.string()),
+    email: v.optional(v.string()),
+    image: v.optional(v.string()),
+    emailVerificationTime: v.optional(v.number()),
+    phone: v.optional(v.string()),
+    phoneVerificationTime: v.optional(v.number()),
+    isAnonymous: v.optional(v.boolean()),
+    // Custom fields
+    role: v.optional(
+      v.union(v.literal("admin"), v.literal("teacher"), v.literal("student"))
+    ),
+    staffId: v.optional(v.id("staff")),
+    studentDocId: v.optional(v.id("students")),
+  }).index("email", ["email"]),
+
   departments: defineTable({
     name: v.string(),
     visibleToStudents: v.optional(v.boolean()),
@@ -21,8 +40,10 @@ export default defineSchema({
   staff: defineTable({
     firstName: v.string(),
     lastName: v.string(),
+    teacherId: v.optional(v.string()),
     departmentId: v.id("departments"),
     subjectIds: v.array(v.id("subjects")),
+    countryCode: v.optional(v.string()),
     phone: v.string(),
     email: v.string(),
     photoStorageId: v.optional(v.id("_storage")),
@@ -37,6 +58,8 @@ export default defineSchema({
   })
     .index("by_department", ["departmentId"])
     .index("by_email", ["email"])
+    .index("by_teacherId", ["teacherId"])
+    .index("by_phone", ["phone"])
     .index("by_name", ["firstName", "lastName"])
     .index("by_isActive", ["isActive"])
     .index("by_createdAt", ["createdAt"])
@@ -49,6 +72,7 @@ export default defineSchema({
     firstName: v.string(),
     lastName: v.string(),
     email: v.string(),
+    countryCode: v.optional(v.string()),
     phone: v.optional(v.string()),
     studentId: v.optional(v.string()),
     subjectIds: v.array(v.id("subjects")),

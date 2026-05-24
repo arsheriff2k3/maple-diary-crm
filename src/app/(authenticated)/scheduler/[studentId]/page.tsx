@@ -1,6 +1,7 @@
 "use client";
 
-import { useQuery, useMutation } from "convex/react";
+import { useQuery } from "convex/react";
+import { useApiMutation } from "@/hooks/useApiMutation";
 import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
 import PageHeader from "@/components/shared/PageHeader";
@@ -100,11 +101,11 @@ export default function StudentSchedulerPage({
   );
   const [calendarMonth, setCalendarMonth] = useState(new Date());
 
-  const createSession = useMutation(api.sessions.create);
-  const createRecurring = useMutation(api.sessions.createRecurring);
-  const rescheduleSession = useMutation(api.sessions.reschedule);
-  const markAttendance = useMutation(api.sessions.markAttendance);
-  const cancelSession = useMutation(api.sessions.cancel);
+  const createSession = useApiMutation(api.sessions.create);
+  const createRecurring = useApiMutation(api.sessions.createRecurring);
+  const rescheduleSession = useApiMutation(api.sessions.reschedule);
+  const markAttendance = useApiMutation(api.sessions.markAttendance);
+  const cancelSession = useApiMutation(api.sessions.cancel);
 
   // Shared session form state
   const [formSubjectId, setFormCourseId] = useState("");
@@ -235,8 +236,8 @@ export default function StudentSchedulerPage({
       toast.success(isBonusSession ? "Bonus session scheduled" : "Session scheduled");
       setSessionFormOpen(false);
       resetForm();
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch {
+      // Error toast handled by useApiMutation
     }
   };
 
@@ -271,8 +272,8 @@ export default function StudentSchedulerPage({
       }
       setSessionFormOpen(false);
       resetForm();
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch {
+      // Error toast handled by useApiMutation
     } finally {
       setFormSubmitting(false);
     }
@@ -298,8 +299,8 @@ export default function StudentSchedulerPage({
       setRescheduleSessionId(null);
       setRescheduleDate("");
       setRescheduleTime("");
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch {
+      // Error toast handled by useApiMutation
     }
   };
 
@@ -313,8 +314,8 @@ export default function StudentSchedulerPage({
         attendance,
       });
       toast.success(`Marked as ${attendance}`);
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch {
+      // Error toast handled by useApiMutation
     }
   };
 
@@ -322,8 +323,8 @@ export default function StudentSchedulerPage({
     try {
       await cancelSession({ id: sessionId as Id<"sessions"> });
       toast.success("Session cancelled");
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch {
+      // Error toast handled by useApiMutation
     }
   };
 

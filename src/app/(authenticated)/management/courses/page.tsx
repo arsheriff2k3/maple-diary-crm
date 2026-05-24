@@ -1,6 +1,7 @@
 "use client";
 
-import { useQuery, useMutation } from "convex/react";
+import { useQuery } from "convex/react";
+import { useApiMutation } from "@/hooks/useApiMutation";
 import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
 import PageHeader from "@/components/shared/PageHeader";
@@ -45,9 +46,9 @@ export default function CoursesPage() {
       ? { departmentId: filterDept as Id<"departments"> }
       : {}
   );
-  const createCourse = useMutation(api.subjects.create);
-  const updateCourse = useMutation(api.subjects.update);
-  const removeCourse = useMutation(api.subjects.remove);
+  const createCourse = useApiMutation(api.subjects.create);
+  const updateCourse = useApiMutation(api.subjects.update);
+  const removeCourse = useApiMutation(api.subjects.remove);
 
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<Id<"subjects"> | null>(null);
@@ -79,8 +80,8 @@ export default function CoursesPage() {
       setEditingId(null);
       setName("");
       setDepartmentId("");
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch {
+      // Error toast handled by useApiMutation
     }
   };
 
@@ -96,8 +97,8 @@ export default function CoursesPage() {
     try {
       await removeCourse({ id: deleteId });
       toast.success("Course deleted");
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch {
+      // Error toast handled by useApiMutation
     }
     setDeleteId(null);
   };

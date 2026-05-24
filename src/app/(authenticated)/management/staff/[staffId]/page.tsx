@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ArrowLeft, Mail, Phone, Building2, BookOpen } from "lucide-react";
+import { ArrowLeft, Mail, Phone, Building2, BookOpen, KeyRound } from "lucide-react";
 import Link from "next/link";
 import { use } from "react";
 
@@ -71,6 +71,25 @@ export default function StaffDetailPage({
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {staff.teacherId && (
+            <div className="bg-muted/50 border rounded-lg p-4 mb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <KeyRound className="h-4 w-4 text-primary" />
+                <p className="text-sm font-medium">Teacher Login Credentials</p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Teacher ID: </span>
+                  <span className="font-mono font-medium">{staff.teacherId}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Phone: </span>
+                  <span className="font-mono">{staff.phone}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex items-center gap-3">
               <Mail className="h-4 w-4 text-muted-foreground" />

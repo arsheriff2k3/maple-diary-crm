@@ -23,13 +23,12 @@ import { format } from "date-fns";
 
 export default function TeacherDashboardPage() {
   const router = useRouter();
-  const { staffId, selectedSubjectId, loading } = useTeacherAuth();
+  const { selectedSubjectId, loading } = useTeacherAuth();
 
   const students = useQuery(
     api.teacherPortal.getMyStudents,
-    staffId && selectedSubjectId
+    selectedSubjectId
       ? {
-          staffId: staffId as Id<"staff">,
           subjectId: selectedSubjectId as Id<"subjects">,
         }
       : "skip"
@@ -37,9 +36,8 @@ export default function TeacherDashboardPage() {
 
   const upcoming = useQuery(
     api.teacherPortal.getUpcomingSessions,
-    staffId && selectedSubjectId
+    selectedSubjectId
       ? {
-          staffId: staffId as Id<"staff">,
           subjectId: selectedSubjectId as Id<"subjects">,
         }
       : "skip"

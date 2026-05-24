@@ -2,16 +2,17 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuthActions } from "@convex-dev/auth/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import Link from "next/link";
 
 export default function TeacherLoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const { signIn } = useAuthActions();
+  const [teacherId, setTeacherId] = useState("");
+  const [emailOrPhone, setEmailOrPhone] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -21,26 +22,10 @@ export default function TeacherLoginPage() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/auth/teacher/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await res.json();
-
-      if (!data.success) {
-        setError(data.error || "Login failed");
-        setLoading(false);
-        return;
-      }
-
-      sessionStorage.setItem(
-        "maple_teacher_profile",
-        JSON.stringify(data.staff)
-      );
+      await signIn("teacher", { teacherId, emailOrPhone });
       router.push("/teacher/dashboard");
     } catch {
-      setError("Something went wrong. Please try again.");
+      setError("Invalid Teacher ID or email/phone");
       setLoading(false);
     }
   };
@@ -62,36 +47,26 @@ export default function TeacherLoginPage() {
               </div>
             )}
             <div className="space-y-2">
-              <Label>Email</Label>
+              <Label>Teacher ID</Label>
               <Input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="name@gmail.com"
+                value={teacherId}
+                onChange={(e) => setTeacherId(e.target.value)}
+                placeholder="TCH-0001"
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label>Password</Label>
+              <Label>Email or Phone Number</Label>
               <Input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
+                value={emailOrPhone}
+                onChange={(e) => setEmailOrPhone(e.target.value)}
+                placeholder="name@gmail.com or 9876543210"
                 required
               />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Signing in..." : "Sign In"}
             </Button>
-            <div className="text-center">
-              <Link
-                href="/teacher/forgot-password"
-                className="text-sm text-primary hover:underline"
-              >
-                Forgot Password?
-              </Link>
-            </div>
           </form>
         </CardContent>
       </Card>

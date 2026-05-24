@@ -1,6 +1,7 @@
 "use client";
 
-import { useQuery, useMutation } from "convex/react";
+import { useQuery } from "convex/react";
+import { useApiMutation } from "@/hooks/useApiMutation";
 import { api } from "../../../../../../convex/_generated/api";
 import { Id } from "../../../../../../convex/_generated/dataModel";
 import { useTeacherAuth } from "@/providers/TeacherAuthProvider";
@@ -27,14 +28,13 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 
 export default function MarkAttendancePage() {
-  const { staffId, selectedSubjectId, loading } = useTeacherAuth();
-  const markAttendance = useMutation(api.sessions.markAttendance);
+  const { selectedSubjectId, loading } = useTeacherAuth();
+  const markAttendance = useApiMutation(api.sessions.markAttendance);
 
   const sessions = useQuery(
     api.teacherPortal.getSessionsForAttendance,
-    staffId && selectedSubjectId
+    selectedSubjectId
       ? {
-          staffId: staffId as Id<"staff">,
           subjectId: selectedSubjectId as Id<"subjects">,
         }
       : "skip"
@@ -50,8 +50,8 @@ export default function MarkAttendancePage() {
         attendance,
       });
       toast.success(`Marked as ${attendance}`);
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch {
+      // Error toast handled by useApiMutation
     }
   };
 

@@ -1,6 +1,7 @@
 "use client";
 
-import { usePaginatedQuery, useQuery, useMutation } from "convex/react";
+import { usePaginatedQuery, useQuery } from "convex/react";
+import { useApiMutation } from "@/hooks/useApiMutation";
 import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
 import PageHeader from "@/components/shared/PageHeader";
@@ -98,6 +99,7 @@ export default function StudentsPage() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
+  const [countryCode, setCountryCode] = useState("+91");
   const [phone, setPhone] = useState("");
   const [region, setRegion] = useState("");
   const [timezone, setTimezone] = useState("");
@@ -109,15 +111,16 @@ export default function StudentsPage() {
   const [packageStartDate, setPackageStartDate] = useState("");
   const [deleteId, setDeleteId] = useState<Id<"students"> | null>(null);
 
-  const createStudent = useMutation(api.students.create);
-  const updateStudent = useMutation(api.students.update);
-  const removeStudent = useMutation(api.students.remove);
+  const createStudent = useApiMutation(api.students.create);
+  const updateStudent = useApiMutation(api.students.update);
+  const removeStudent = useApiMutation(api.students.remove);
 
   const resetForm = () => {
     setEditingId(null);
     setFirstName("");
     setLastName("");
     setEmail("");
+    setCountryCode("+91");
     setPhone("");
     setRegion("");
     setTimezone("");
@@ -162,6 +165,7 @@ export default function StudentsPage() {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         email: email.trim().toLowerCase(),
+        countryCode: phone.trim() ? countryCode : undefined,
         phone: phone.trim() || undefined,
         subjectIds: formSubjectIds as Id<"subjects">[],
         region,
@@ -185,8 +189,8 @@ export default function StudentsPage() {
       }
       setFormOpen(false);
       resetForm();
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch {
+      // Error toast handled by useApiMutation
     }
   };
 
@@ -195,6 +199,7 @@ export default function StudentsPage() {
     setFirstName(student.firstName);
     setLastName(student.lastName);
     setEmail(student.email);
+    setCountryCode(student.countryCode ?? "+91");
     setPhone(student.phone ?? "");
     setRegion(student.region);
     setTimezone(student.timezone);
@@ -220,8 +225,8 @@ export default function StudentsPage() {
     try {
       await removeStudent({ id: deleteId });
       toast.success("Student removed");
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch {
+      // Error toast handled by useApiMutation
     }
     setDeleteId(null);
   };
@@ -434,22 +439,9 @@ export default function StudentsPage() {
             <div className="space-y-2">
               <Label>Phone</Label>
               <div className="flex gap-2">
-                <Select
-                  value={phone.startsWith("+") ? phone.split(" ")[0] : ""}
-                  onValueChange={(code) => {
-                    const number = phone.includes(" ")
-                      ? phone.split(" ").slice(1).join(" ")
-                      : phone.startsWith("+") ? "" : phone;
-                    setPhone(code ? `${code} ${number}` : number);
-                  }}
-                >
+                <Select value={countryCode} onValueChange={(v) => v && setCountryCode(v)}>
                   <SelectTrigger className="w-28 shrink-0">
-                    <SelectValue placeholder="Code">
-                      {(value: string) => {
-                        if (!value) return "Code";
-                        return COUNTRY_CODES.find((c) => c.code === value)?.label ?? value;
-                      }}
-                    </SelectValue>
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {COUNTRY_CODES.map((c) => (
@@ -461,11 +453,8 @@ export default function StudentsPage() {
                 </Select>
                 <Input
                   type="tel"
-                  value={phone.includes(" ") ? phone.split(" ").slice(1).join(" ") : (phone.startsWith("+") ? "" : phone)}
-                  onChange={(e) => {
-                    const code = phone.startsWith("+") ? phone.split(" ")[0] : "";
-                    setPhone(code ? `${code} ${e.target.value}` : e.target.value);
-                  }}
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
                   placeholder="Phone number"
                   className="flex-1"
                 />

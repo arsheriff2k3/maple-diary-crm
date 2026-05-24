@@ -11,6 +11,29 @@ export const getStaffByEmail = internalQuery({
   },
 });
 
+export const getStaffByPhone = internalQuery({
+  args: { phone: v.string() },
+  handler: async (ctx, args) => {
+    const exact = await ctx.db
+      .query("staff")
+      .withIndex("by_phone", (q) => q.eq("phone", args.phone))
+      .first();
+    if (exact) return exact;
+
+    // Fallback: normalize and search
+    const normalized = args.phone.replace(/[\s\-\(\)]/g, "");
+    const allStaff = await ctx.db
+      .query("staff")
+      .withIndex("by_isActive", (q) => q.eq("isActive", true))
+      .collect();
+    return (
+      allStaff.find(
+        (s) => s.phone.replace(/[\s\-\(\)]/g, "") === normalized
+      ) ?? null
+    );
+  },
+});
+
 export const getStaffByResetToken = internalQuery({
   args: { resetToken: v.string() },
   handler: async (ctx, args) => {

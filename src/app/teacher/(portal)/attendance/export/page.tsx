@@ -20,14 +20,13 @@ import { useState } from "react";
 import { format } from "date-fns";
 
 export default function ExportAttendancePage() {
-  const { staffId, selectedSubjectId, loading } = useTeacherAuth();
+  const { selectedSubjectId, loading } = useTeacherAuth();
   const [selectedStudentId, setSelectedStudentId] = useState("");
 
   const students = useQuery(
     api.teacherPortal.getMyStudents,
-    staffId && selectedSubjectId
+    selectedSubjectId
       ? {
-          staffId: staffId as Id<"staff">,
           subjectId: selectedSubjectId as Id<"subjects">,
         }
       : "skip"
@@ -35,9 +34,8 @@ export default function ExportAttendancePage() {
 
   const history = useQuery(
     api.teacherPortal.getAttendanceHistory,
-    staffId && selectedStudentId && selectedSubjectId
+    selectedStudentId && selectedSubjectId
       ? {
-          staffId: staffId as Id<"staff">,
           studentId: selectedStudentId as Id<"students">,
           subjectId: selectedSubjectId as Id<"subjects">,
         }

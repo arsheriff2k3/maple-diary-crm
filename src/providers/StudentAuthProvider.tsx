@@ -1,7 +1,17 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
+import {
+  createContext,
+  useContext,
+  ReactNode,
+  useCallback,
+  useEffect,
+} from "react";
 import { useRouter } from "next/navigation";
+import { useQuery } from "convex/react";
+import { useAuthActions } from "@convex-dev/auth/react";
+import { useConvexAuth } from "@convex-dev/auth/react";
+import { api } from "../../convex/_generated/api";
 
 interface StudentProfile {
   _id: string;
@@ -15,7 +25,6 @@ interface StudentProfile {
 
 interface StudentAuthContextType {
   studentDocId: string | null;
-  token: string | null;
   profile: StudentProfile | null;
   logout: () => Promise<void>;
   loading: boolean;
@@ -23,7 +32,6 @@ interface StudentAuthContextType {
 
 const StudentAuthContext = createContext<StudentAuthContextType>({
   studentDocId: null,
-  token: null,
   profile: null,
   logout: async () => {},
   loading: true,
@@ -33,74 +41,55 @@ export function useStudentAuth() {
   return useContext(StudentAuthContext);
 }
 
-function getCookie(name: string): string | null {
-  const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`));
-  return match ? decodeURIComponent(match[2]) : null;
-}
-
-function parseJWT(token: string): any {
-  try {
-    const payload = token.split(".")[1];
-    return JSON.parse(atob(payload));
-  } catch {
-    return null;
-  }
-}
-
 export default function StudentAuthProvider({
   children,
 }: {
   children: ReactNode;
 }) {
   const router = useRouter();
-  const [token, setToken] = useState<string | null>(null);
-  const [profile, setProfile] = useState<StudentProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { signOut } = useAuthActions();
+  const { isAuthenticated, isLoading } = useConvexAuth();
+
+  const currentUser = useQuery(api.users.currentUser);
+
+  const studentProfile = useQuery(
+    api.students.getById,
+    currentUser?.studentDocId ? { id: currentUser.studentDocId } : "skip"
+  );
 
   useEffect(() => {
-    const cookieToken = getCookie("maple_student_token");
-    if (!cookieToken) {
-      setLoading(false);
+    if (!isLoading && !isAuthenticated) {
       router.push("/student/login");
       return;
     }
-
-    const payload = parseJWT(cookieToken);
-    if (!payload || payload.role !== "student") {
-      setLoading(false);
+    if (currentUser && currentUser.role !== "student") {
       router.push("/student/login");
-      return;
     }
+  }, [isLoading, isAuthenticated, currentUser, router]);
 
-    if (payload.exp && payload.exp * 1000 < Date.now()) {
-      setLoading(false);
-      router.push("/student/login");
-      return;
-    }
-
-    setToken(cookieToken);
-
-    const cached = sessionStorage.getItem("maple_student_profile");
-    if (cached) {
-      setProfile(JSON.parse(cached));
-    }
-
-    setLoading(false);
-  }, []);
+  const profile: StudentProfile | null = studentProfile
+    ? {
+        _id: studentProfile._id,
+        firstName: studentProfile.firstName,
+        lastName: studentProfile.lastName,
+        studentId: studentProfile.studentId ?? "",
+        subjectIds: studentProfile.subjectIds,
+        region: studentProfile.region,
+        timezone: studentProfile.timezone,
+      }
+    : null;
 
   const logout = useCallback(async () => {
-    await fetch("/api/auth/student/logout", { method: "POST" });
-    sessionStorage.removeItem("maple_student_profile");
-    setToken(null);
-    setProfile(null);
+    await signOut();
     router.push("/student/login");
-  }, [router]);
+  }, [signOut, router]);
+
+  const loading = isLoading || (isAuthenticated && !studentProfile);
 
   return (
     <StudentAuthContext.Provider
       value={{
-        studentDocId: profile?._id ?? null,
-        token,
+        studentDocId: currentUser?.studentDocId ?? null,
         profile,
         logout,
         loading,

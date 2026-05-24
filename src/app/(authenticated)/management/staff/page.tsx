@@ -1,6 +1,7 @@
 "use client";
 
-import { usePaginatedQuery, useQuery, useMutation, useAction } from "convex/react";
+import { usePaginatedQuery, useQuery } from "convex/react";
+import { useApiMutation, useApiAction } from "@/hooks/useApiMutation";
 import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
 import PageHeader from "@/components/shared/PageHeader";
@@ -43,7 +44,7 @@ import {
 import { Users, Plus, Pencil, Trash2, Info, X } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { toast } from "sonner";
-import { GMAIL_REGEX, PAGE_SIZE } from "@/lib/constants";
+import { GMAIL_REGEX, PAGE_SIZE, COUNTRY_CODES } from "@/lib/constants";
 import { useRouter } from "next/navigation";
 
 export default function StaffPage() {
@@ -100,14 +101,15 @@ export default function StaffPage() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
+  const [countryCode, setCountryCode] = useState("+91");
   const [phone, setPhone] = useState("");
   const [formDeptId, setFormDeptId] = useState<string>("");
   const [formSubjectIds, setFormCourseIds] = useState<string[]>([]);
   const [deleteId, setDeleteId] = useState<Id<"staff"> | null>(null);
 
-  const createStaff = useAction(api.staffActions.createWithCredentials);
-  const updateStaff = useMutation(api.staff.update);
-  const removeStaff = useMutation(api.staff.remove);
+  const createStaff = useApiAction(api.staffActions.createWithCredentials);
+  const updateStaff = useApiMutation(api.staff.update);
+  const removeStaff = useApiMutation(api.staff.remove);
 
   const filteredCourses = useMemo(() => {
     if (!allSubjects || !formDeptId) return [];
@@ -119,6 +121,7 @@ export default function StaffPage() {
     setFirstName("");
     setLastName("");
     setEmail("");
+    setCountryCode("+91");
     setPhone("");
     setFormDeptId("");
     setFormCourseIds([]);
@@ -138,6 +141,7 @@ export default function StaffPage() {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         email: email.trim().toLowerCase(),
+        countryCode,
         phone: phone.trim(),
         departmentId: formDeptId as Id<"departments">,
         subjectIds: formSubjectIds as Id<"subjects">[],
@@ -151,8 +155,8 @@ export default function StaffPage() {
       }
       setFormOpen(false);
       resetForm();
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch {
+      // Error toast handled by useApiMutation
     }
   };
 
@@ -161,6 +165,7 @@ export default function StaffPage() {
     setFirstName(staff.firstName);
     setLastName(staff.lastName);
     setEmail(staff.email);
+    setCountryCode(staff.countryCode ?? "+91");
     setPhone(staff.phone);
     setFormDeptId(staff.departmentId);
     setFormCourseIds(staff.subjectIds);
@@ -172,8 +177,8 @@ export default function StaffPage() {
     try {
       await removeStaff({ id: deleteId });
       toast.success("Staff removed");
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch {
+      // Error toast handled by useApiMutation
     }
     setDeleteId(null);
   };
@@ -413,11 +418,27 @@ export default function StaffPage() {
             </div>
             <div className="space-y-2">
               <Label>Phone</Label>
-              <Input
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="Phone number"
-              />
+              <div className="flex gap-2">
+                <Select value={countryCode} onValueChange={(v) => v && setCountryCode(v)}>
+                  <SelectTrigger className="w-28 shrink-0">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COUNTRY_CODES.map((c) => (
+                      <SelectItem key={c.code} value={c.code}>
+                        {c.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="Phone number"
+                  className="flex-1"
+                />
+              </div>
             </div>
           </div>
           <DialogFooter>

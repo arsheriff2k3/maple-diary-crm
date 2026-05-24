@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "convex/react";
+import { useApiMutation } from "@/hooks/useApiMutation";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
 import StatCard from "@/components/shared/StatCard";
@@ -21,7 +22,6 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { useMutation } from "convex/react";
 import { useState } from "react";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -32,9 +32,9 @@ export default function DashboardPage() {
   const stats = useQuery(api.dashboard.getStats);
   const pendingRequests = useQuery(api.batchChangeRequests.listPending);
   const paymentReminders = useQuery(api.dashboard.getPaymentReminders);
-  const updateRequestStatus = useMutation(api.batchChangeRequests.updateStatus);
-  const resetPackage = useMutation(api.students.resetPackage);
-  const createRecurring = useMutation(api.sessions.createRecurring);
+  const updateRequestStatus = useApiMutation(api.batchChangeRequests.updateStatus);
+  const resetPackage = useApiMutation(api.students.resetPackage);
+  const createRecurring = useApiMutation(api.sessions.createRecurring);
 
   const [commentMap, setCommentMap] = useState<Record<string, string>>({});
   const [renewStudentId, setRenewStudentId] = useState<string | null>(null);
@@ -92,8 +92,8 @@ export default function DashboardPage() {
       }
 
       setRenewStudentId(null);
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch {
+      // Error toast handled by useApiMutation
     } finally {
       setRenewSubmitting(false);
     }
@@ -115,8 +115,8 @@ export default function DashboardPage() {
         delete next[id];
         return next;
       });
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch {
+      // Error toast handled by useApiMutation
     }
   };
 

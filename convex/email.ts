@@ -16,23 +16,25 @@ export const sendTeacherCredentials = internalAction({
   args: {
     email: v.string(),
     firstName: v.string(),
-    password: v.string(),
+    teacherId: v.string(),
+    phone: v.string(),
   },
   handler: async (_ctx, args) => {
+    console.log(`[Email] Sending teacher credentials to ${args.email}...`);
     const resend = getResend();
-    await resend.emails.send({
-      from: "Maple Diary <onboarding@resend.dev>",
+    const result = await resend.emails.send({
+      from: "onboarding@resend.dev",
       to: args.email,
       subject: "Your Teacher Account Credentials - Maple Diary",
       html: `
         <h2>Welcome to Maple Diary, ${args.firstName}!</h2>
         <p>Your teacher account has been created. Here are your login credentials:</p>
-        <p><strong>Email:</strong> ${args.email}</p>
-        <p><strong>Password:</strong> ${args.password}</p>
+        <p><strong>Teacher ID:</strong> ${args.teacherId}</p>
+        <p><strong>Phone:</strong> ${args.phone}</p>
         <p><a href="${getAppUrl()}/teacher/login">Login here</a></p>
-        <p>Please change your password after your first login.</p>
       `,
     });
+    console.log(`[Email] Resend response:`, JSON.stringify(result));
   },
 });
 

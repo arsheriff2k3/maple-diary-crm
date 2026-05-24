@@ -8,6 +8,7 @@ export const createWithStudentId: any = internalAction({
     firstName: v.string(),
     lastName: v.string(),
     email: v.string(),
+    countryCode: v.optional(v.string()),
     phone: v.optional(v.string()),
     subjectIds: v.array(v.id("subjects")),
     region: v.string(),
@@ -30,6 +31,12 @@ export const createWithStudentId: any = internalAction({
       args
     );
 
+    console.log(`[Student] ===== STUDENT CREDENTIALS =====`);
+    console.log(`[Student] Student ID: ${result.studentId}`);
+    console.log(`[Student] Phone: ${args.phone || "N/A"}`);
+    console.log(`[Student] Email: ${args.email}`);
+    console.log(`[Student] =================================`);
+
     if (args.phone && result.studentId) {
       try {
         await ctx.runAction(internal.email.sendStudentCredentials, {
@@ -38,8 +45,8 @@ export const createWithStudentId: any = internalAction({
           phone: args.phone,
           studentId: result.studentId,
         });
-      } catch {
-        // Email failure shouldn't block creation
+      } catch (error) {
+        console.error(`[Student] Email send failed (credentials logged above):`, error);
       }
     }
 

@@ -1,6 +1,7 @@
 "use client";
 
-import { useQuery, useMutation } from "convex/react";
+import { useQuery } from "convex/react";
+import { useApiMutation } from "@/hooks/useApiMutation";
 import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
 import PageHeader from "@/components/shared/PageHeader";
@@ -33,10 +34,10 @@ import { toast } from "sonner";
 export default function DepartmentsPage() {
   const departments = useQuery(api.departments.list);
   const courses = useQuery(api.subjects.list, {});
-  const createDept = useMutation(api.departments.create);
-  const updateDept = useMutation(api.departments.update);
-  const removeDept = useMutation(api.departments.remove);
-  const toggleVisibility = useMutation(api.departments.toggleVisibility);
+  const createDept = useApiMutation(api.departments.create);
+  const updateDept = useApiMutation(api.departments.update);
+  const removeDept = useApiMutation(api.departments.remove);
+  const toggleVisibility = useApiMutation(api.departments.toggleVisibility);
 
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<Id<"departments"> | null>(null);
@@ -59,8 +60,8 @@ export default function DepartmentsPage() {
       setFormOpen(false);
       setEditingId(null);
       setName("");
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch {
+      // Error toast handled by useApiMutation
     }
   };
 
@@ -75,8 +76,8 @@ export default function DepartmentsPage() {
     try {
       await removeDept({ id: deleteId });
       toast.success("Department deleted");
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch {
+      // Error toast handled by useApiMutation
     }
     setDeleteId(null);
   };
@@ -135,7 +136,7 @@ export default function DepartmentsPage() {
                   <TableCell>
                     <Switch
                       checked={dept.visibleToStudents ?? true}
-                      onCheckedChange={() => toggleVisibility({ id: dept._id })}
+                      onCheckedChange={() => { toggleVisibility({ id: dept._id }).catch(() => {}); }}
                     />
                   </TableCell>
                   <TableCell>
