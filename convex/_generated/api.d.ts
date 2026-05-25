@@ -11,6 +11,7 @@
 import type * as auth from "../auth.js";
 import type * as authHelpers from "../authHelpers.js";
 import type * as batchChangeRequests from "../batchChangeRequests.js";
+import type * as clearAuth from "../clearAuth.js";
 import type * as dashboard from "../dashboard.js";
 import type * as departments from "../departments.js";
 import type * as email from "../email.js";
@@ -43,6 +44,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   authHelpers: typeof authHelpers;
   batchChangeRequests: typeof batchChangeRequests;
+  clearAuth: typeof clearAuth;
   dashboard: typeof dashboard;
   departments: typeof departments;
   email: typeof email;

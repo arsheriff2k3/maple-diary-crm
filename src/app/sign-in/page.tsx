@@ -29,12 +29,10 @@ export default function AdminSignInPage() {
         flow: isSignUp ? "signUp" : "signIn",
       });
       router.push("/dashboard");
-    } catch {
-      setError(
-        isSignUp
-          ? "Sign up failed. Email may already be registered."
-          : "Invalid email or password"
-      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("Auth error:", message);
+      setError(message);
       setLoading(false);
     }
   };
