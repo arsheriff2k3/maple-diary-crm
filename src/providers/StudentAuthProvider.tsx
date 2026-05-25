@@ -86,6 +86,18 @@ export default function StudentAuthProvider({
 
   const loading = isLoading || (isAuthenticated && !studentProfile);
 
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-muted-foreground">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null;
+  }
+
   return (
     <StudentAuthContext.Provider
       value={{
