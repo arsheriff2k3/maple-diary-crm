@@ -156,8 +156,15 @@ export default function StudentsPage() {
       return;
     }
     if (!GMAIL_REGEX.test(email)) {
-      toast.error("Only Gmail accounts are accepted");
+      toast.error("Please enter a valid email address.");
       return;
+    }
+    if (phone.trim()) {
+      const phoneDigits = phone.trim().replace(/\D/g, "");
+      if (phoneDigits.length !== 10) {
+        toast.error("Please enter a valid 10-digit phone number.");
+        return;
+      }
     }
     const validAssignments = teacherAssignments.filter((a) => a.staffId);
     try {
@@ -426,14 +433,14 @@ export default function StudentsPage() {
                   <TooltipTrigger>
                     <Info className="h-3 w-3 text-muted-foreground" />
                   </TooltipTrigger>
-                  <TooltipContent>Only Gmail accounts accepted</TooltipContent>
+                  <TooltipContent>Enter a valid email address</TooltipContent>
                 </Tooltip>
               </div>
               <Input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="name@gmail.com"
+                placeholder="name@example.com"
               />
             </div>
             <div className="space-y-2">
@@ -454,8 +461,10 @@ export default function StudentsPage() {
                 <Input
                   type="tel"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="Phone number"
+                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                  placeholder="10-digit number"
+                  maxLength={10}
+                  inputMode="numeric"
                   className="flex-1"
                 />
               </div>

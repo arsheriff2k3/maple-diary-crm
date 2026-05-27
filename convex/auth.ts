@@ -1,33 +1,82 @@
 import { convexAuth } from "@convex-dev/auth/server";
-import { Password } from "@convex-dev/auth/providers/Password";
 import { ConvexCredentials } from "@convex-dev/auth/providers/ConvexCredentials";
 import { DataModel } from "./_generated/dataModel";
 
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers: [
-    // Admin: email + password
-    Password<DataModel>({
+    // Admin: email + password login (account creation handled separately via OTP)
+    ConvexCredentials<DataModel>({
       id: "admin",
-      profile(params) {
-        return {
-          email: (params.email as string).toLowerCase().trim(),
-          name: params.name as string | undefined,
-          role: "admin" as const,
-        };
+      authorize: async (credentials, ctx) => {
+        const email = (credentials.email as string)?.trim().toLowerCase();
+        const password = (credentials.password as string);
+        if (!email || !password) {
+          throw new Error("Email and password are required.");
+        }
+
+        const { internal } = await import("./_generated/api");
+
+        const user = await ctx.runQuery(internal.authHelpers.getAdminByEmail, {
+          email,
+        });
+
+        if (!user || !user.passwordHash) {
+          throw new Error("Invalid email or password. Please try again or create a new account.");
+        }
+
+        const valid = await ctx.runAction(
+          internal.adminAuth.verifyAdminPassword,
+          { password, hash: user.passwordHash }
+        );
+
+        if (!valid) {
+          throw new Error("Invalid email or password. Please try again.");
+        }
+
+        return { userId: user._id };
       },
     }),
 
-    // Teacher: teacherId + (phone OR email)
+    // Teacher: teacherId + (phone OR email) + OTP verification
     ConvexCredentials<DataModel>({
       id: "teacher",
       authorize: async (credentials, ctx) => {
         const teacherId = (credentials.teacherId as string)?.trim();
         const emailOrPhone = (credentials.emailOrPhone as string)?.trim();
-        if (!teacherId || !emailOrPhone) return null;
+        const otp = (credentials.otp as string)?.trim();
+        if (!teacherId || !emailOrPhone || !otp) {
+          throw new Error("All fields are required.");
+        }
 
         const { internal } = await import("./_generated/api");
 
-        // Determine if input is email or phone
+        // Verify OTP
+        const otpResult = await ctx.runQuery(internal.otpInternal.verify, {
+          identifier: teacherId,
+          portal: "teacher",
+          code: otp,
+        });
+
+        if (!otpResult.valid) {
+          if (otpResult.otpId) {
+            await ctx.runMutation(internal.otpInternal.incrementAttempts, {
+              id: otpResult.otpId,
+            });
+          }
+          throw new Error(
+            otpResult.reason === "expired"
+              ? "Verification code has expired. Please request a new one."
+              : "Invalid verification code. Please try again."
+          );
+        }
+
+        if (otpResult.otpId) {
+          await ctx.runMutation(internal.otpInternal.markUsed, {
+            id: otpResult.otpId,
+          });
+        }
+
+        // Validate credentials
         const isEmail = emailOrPhone.includes("@");
         let staff;
 
@@ -44,8 +93,12 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
           );
         }
 
-        if (!staff || !staff.isActive) return null;
-        if (staff.teacherId !== teacherId) return null;
+        if (!staff || !staff.isActive) {
+          throw new Error("Invalid credentials. Teacher not found or account is inactive.");
+        }
+        if (staff.teacherId !== teacherId) {
+          throw new Error("Invalid Teacher ID. Please check and try again.");
+        }
 
         // Find or create auth user
         let user = await ctx.runQuery(
@@ -69,16 +122,46 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
       },
     }),
 
-    // Student: studentId + (phone OR email)
+    // Student: studentId + (phone OR email) + OTP verification
     ConvexCredentials<DataModel>({
       id: "student",
       authorize: async (credentials, ctx) => {
         const studentId = (credentials.studentId as string)?.trim();
         const emailOrPhone = (credentials.emailOrPhone as string)?.trim();
-        if (!studentId || !emailOrPhone) return null;
+        const otp = (credentials.otp as string)?.trim();
+        if (!studentId || !emailOrPhone || !otp) {
+          throw new Error("All fields are required.");
+        }
 
         const { internal } = await import("./_generated/api");
 
+        // Verify OTP
+        const otpResult = await ctx.runQuery(internal.otpInternal.verify, {
+          identifier: studentId.toUpperCase(),
+          portal: "student",
+          code: otp,
+        });
+
+        if (!otpResult.valid) {
+          if (otpResult.otpId) {
+            await ctx.runMutation(internal.otpInternal.incrementAttempts, {
+              id: otpResult.otpId,
+            });
+          }
+          throw new Error(
+            otpResult.reason === "expired"
+              ? "Verification code has expired. Please request a new one."
+              : "Invalid verification code. Please try again."
+          );
+        }
+
+        if (otpResult.otpId) {
+          await ctx.runMutation(internal.otpInternal.markUsed, {
+            id: otpResult.otpId,
+          });
+        }
+
+        // Validate credentials
         const isEmail = emailOrPhone.includes("@");
         let student;
 
@@ -95,8 +178,12 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
           );
         }
 
-        if (!student || !student.isActive) return null;
-        if (student.studentId !== studentId) return null;
+        if (!student || !student.isActive) {
+          throw new Error("Invalid credentials. Student not found or account is inactive.");
+        }
+        if (student.studentId?.toUpperCase() !== studentId.toUpperCase()) {
+          throw new Error("Invalid Student ID. Please check and try again.");
+        }
 
         // Find or create auth user
         let user = await ctx.runQuery(

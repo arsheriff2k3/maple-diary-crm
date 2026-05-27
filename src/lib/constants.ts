@@ -1,6 +1,7 @@
 export const PAGE_SIZE = 10;
 
-export const GMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
+export const GMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+export const EMAIL_REGEX = GMAIL_REGEX;
 
 export const REGIONS = [
   "Afghanistan",

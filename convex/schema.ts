@@ -17,9 +17,13 @@ export default defineSchema({
     role: v.optional(
       v.union(v.literal("admin"), v.literal("teacher"), v.literal("student"))
     ),
+    passwordHash: v.optional(v.string()),
     staffId: v.optional(v.id("staff")),
     studentDocId: v.optional(v.id("students")),
-  }).index("email", ["email"]),
+  })
+    .index("email", ["email"])
+    .index("by_staffId", ["staffId"])
+    .index("by_studentDocId", ["studentDocId"]),
 
   departments: defineTable({
     name: v.string(),
@@ -182,4 +186,16 @@ export default defineSchema({
     name: v.string(),
     value: v.number(),
   }).index("by_name", ["name"]),
+
+  otpCodes: defineTable({
+    identifier: v.string(), // teacherId or studentId
+    portal: v.union(v.literal("admin"), v.literal("teacher"), v.literal("student")),
+    code: v.string(), // 6-digit code
+    email: v.string(), // where OTP was sent
+    expiresAt: v.number(),
+    used: v.boolean(),
+    attempts: v.number(), // failed verification attempts
+  })
+    .index("by_identifier_portal", ["identifier", "portal"])
+    .index("by_expiresAt", ["expiresAt"]),
 });

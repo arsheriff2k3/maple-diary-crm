@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as adminAuth from "../adminAuth.js";
 import type * as auth from "../auth.js";
 import type * as authHelpers from "../authHelpers.js";
 import type * as batchChangeRequests from "../batchChangeRequests.js";
@@ -17,6 +18,8 @@ import type * as departments from "../departments.js";
 import type * as email from "../email.js";
 import type * as http from "../http.js";
 import type * as lib_auth from "../lib/auth.js";
+import type * as otp from "../otp.js";
+import type * as otpInternal from "../otpInternal.js";
 import type * as seed from "../seed.js";
 import type * as sessions from "../sessions.js";
 import type * as staff from "../staff.js";
@@ -41,6 +44,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  adminAuth: typeof adminAuth;
   auth: typeof auth;
   authHelpers: typeof authHelpers;
   batchChangeRequests: typeof batchChangeRequests;
@@ -50,6 +54,8 @@ declare const fullApi: ApiFromModules<{
   email: typeof email;
   http: typeof http;
   "lib/auth": typeof lib_auth;
+  otp: typeof otp;
+  otpInternal: typeof otpInternal;
   seed: typeof seed;
   sessions: typeof sessions;
   staff: typeof staff;

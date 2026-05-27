@@ -1,31 +1,39 @@
 "use client";
 
 import { useConvexAuth } from "@convex-dev/auth/react";
+import { useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import ConvexAuthAppProvider from "@/providers/ConvexAuthAppProvider";
 import Sidebar from "@/components/layout/Sidebar";
 import Header from "@/components/layout/Header";
+import { api } from "../../../convex/_generated/api";
 
 function AdminAuthGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useConvexAuth();
   const router = useRouter();
+  const currentUser = useQuery(api.users.currentUser);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      router.push("/sign-in");
+      router.replace("/sign-in");
+      return;
     }
-  }, [isLoading, isAuthenticated, router]);
+    // If authenticated but not an admin, redirect to sign-in
+    if (currentUser && currentUser.role !== "admin") {
+      router.replace("/sign-in");
+    }
+  }, [isLoading, isAuthenticated, currentUser, router]);
 
-  if (isLoading) {
+  if (isLoading || (isAuthenticated && currentUser === undefined)) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <div className="text-muted-foreground">Loading...</div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
       </div>
     );
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || (currentUser && currentUser.role !== "admin")) {
     return null;
   }
 

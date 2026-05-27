@@ -2,14 +2,19 @@
 
 import { internalAction } from "./_generated/server";
 import { v } from "convex/values";
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
 
-const getResend = () => {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) throw new Error("RESEND_API_KEY not set");
-  return new Resend(apiKey);
+const getTransporter = () => {
+  const user = process.env.GMAIL_USER;
+  const pass = process.env.GMAIL_PASS;
+  if (!user || !pass) throw new Error("GMAIL_USER or GMAIL_PASS not set");
+  return nodemailer.createTransport({
+    service: "gmail",
+    auth: { user, pass },
+  });
 };
 
+const getFrom = () => `Maple Diary <${process.env.GMAIL_USER}>`;
 const getAppUrl = () => process.env.APP_URL || "http://localhost:3000";
 
 export const sendTeacherCredentials = internalAction({
@@ -20,10 +25,9 @@ export const sendTeacherCredentials = internalAction({
     phone: v.string(),
   },
   handler: async (_ctx, args) => {
-    console.log(`[Email] Sending teacher credentials to ${args.email}...`);
-    const resend = getResend();
-    const result = await resend.emails.send({
-      from: "onboarding@resend.dev",
+    const transporter = getTransporter();
+    await transporter.sendMail({
+      from: getFrom(),
       to: args.email,
       subject: "Your Teacher Account Credentials - Maple Diary",
       html: `
@@ -34,7 +38,6 @@ export const sendTeacherCredentials = internalAction({
         <p><a href="${getAppUrl()}/teacher/login">Login here</a></p>
       `,
     });
-    console.log(`[Email] Resend response:`, JSON.stringify(result));
   },
 });
 
@@ -46,9 +49,9 @@ export const sendStudentCredentials = internalAction({
     studentId: v.string(),
   },
   handler: async (_ctx, args) => {
-    const resend = getResend();
-    await resend.emails.send({
-      from: "Maple Diary <onboarding@resend.dev>",
+    const transporter = getTransporter();
+    await transporter.sendMail({
+      from: getFrom(),
       to: args.email,
       subject: "Your Student Account - Maple Diary",
       html: `
@@ -69,10 +72,10 @@ export const sendPasswordResetLink = internalAction({
     resetToken: v.string(),
   },
   handler: async (_ctx, args) => {
-    const resend = getResend();
+    const transporter = getTransporter();
     const resetUrl = `${getAppUrl()}/teacher/reset-password?token=${args.resetToken}`;
-    await resend.emails.send({
-      from: "Maple Diary <onboarding@resend.dev>",
+    await transporter.sendMail({
+      from: getFrom(),
       to: args.email,
       subject: "Password Reset - Maple Diary",
       html: `
@@ -86,6 +89,31 @@ export const sendPasswordResetLink = internalAction({
   },
 });
 
+export const sendOtpCode = internalAction({
+  args: {
+    email: v.string(),
+    firstName: v.string(),
+    code: v.string(),
+  },
+  handler: async (_ctx, args) => {
+    const transporter = getTransporter();
+    await transporter.sendMail({
+      from: getFrom(),
+      to: args.email,
+      subject: "Your Verification Code - Maple Diary",
+      html: `
+        <h2>Verification Code</h2>
+        <p>Hi ${args.firstName}, your login verification code is:</p>
+        <div style="background: #f4f4f5; padding: 20px; text-align: center; border-radius: 8px; margin: 20px 0;">
+          <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #18181b;">${args.code}</span>
+        </div>
+        <p>This code expires in 5 minutes.</p>
+        <p>If you didn't request this code, please ignore this email.</p>
+      `,
+    });
+  },
+});
+
 export const sendStudentIdReminder = internalAction({
   args: {
     email: v.string(),
@@ -93,9 +121,9 @@ export const sendStudentIdReminder = internalAction({
     studentId: v.string(),
   },
   handler: async (_ctx, args) => {
-    const resend = getResend();
-    await resend.emails.send({
-      from: "Maple Diary <onboarding@resend.dev>",
+    const transporter = getTransporter();
+    await transporter.sendMail({
+      from: getFrom(),
       to: args.email,
       subject: "Your Student ID - Maple Diary",
       html: `

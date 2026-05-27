@@ -1,5 +1,4 @@
 import bcrypt from "bcryptjs";
-import { SignJWT, jwtVerify } from "jose";
 
 const SALT_ROUNDS = 10;
 
@@ -31,25 +30,4 @@ export function generateResetToken(): string {
     token += chars[Math.floor(Math.random() * chars.length)];
   }
   return token;
-}
-
-export async function generateJWT(
-  payload: { sub: string; role: string },
-  secret: string
-): Promise<string> {
-  const key = new TextEncoder().encode(secret);
-  return new SignJWT(payload)
-    .setProtectedHeader({ alg: "HS256" })
-    .setIssuedAt()
-    .setExpirationTime("24h")
-    .sign(key);
-}
-
-export async function verifyJWT(
-  token: string,
-  secret: string
-): Promise<{ sub: string; role: string }> {
-  const key = new TextEncoder().encode(secret);
-  const { payload } = await jwtVerify(token, key);
-  return { sub: payload.sub as string, role: payload.role as string };
 }

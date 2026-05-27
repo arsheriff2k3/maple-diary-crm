@@ -1,26 +1,31 @@
 "use client";
 
 import { useState } from "react";
+import { useAction } from "convex/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
+import { api } from "../../../../convex/_generated/api";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const forgotPassword = useAction(api.teacherAuth.forgotPassword);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
     setLoading(true);
-    await fetch("/api/auth/teacher/forgot-password", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
-    });
-    setSent(true);
+    try {
+      await forgotPassword({ email: email.trim() });
+      setSent(true);
+    } catch {
+      setError("Something went wrong. Please try again.");
+    }
     setLoading(false);
   };
 
@@ -48,14 +53,21 @@ export default function ForgotPasswordPage() {
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
+                  {error}
+                </div>
+              )}
               <div className="space-y-2">
-                <Label>Email</Label>
+                <Label htmlFor="email">Email</Label>
                 <Input
+                  id="email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@gmail.com"
                   required
+                  autoComplete="email"
                 />
               </div>
               <Button type="submit" className="w-full" disabled={loading}>

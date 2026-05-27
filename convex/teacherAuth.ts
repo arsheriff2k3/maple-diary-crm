@@ -3,64 +3,7 @@
 import { action } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import {
-  verifyPassword,
-  generateJWT,
-  generateResetToken,
-  hashPassword,
-} from "./lib/auth";
-
-export const login = action({
-  args: {
-    email: v.string(),
-    password: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const staff: any = await ctx.runQuery(internal.teacherAuthInternal.getStaffByEmail, {
-      email: args.email.trim().toLowerCase(),
-    });
-
-    if (!staff) {
-      throw new Error("Invalid email or password");
-    }
-
-    if (!staff.isActive) {
-      throw new Error(
-        "Your account has been deactivated. Please contact the administrator."
-      );
-    }
-
-    if (!staff.passwordHash) {
-      throw new Error("No password set for this account. Contact the administrator.");
-    }
-
-    const valid = await verifyPassword(args.password, staff.passwordHash);
-    if (!valid) {
-      throw new Error("Invalid email or password");
-    }
-
-    const secret = process.env.JWT_SECRET;
-    if (!secret) throw new Error("JWT_SECRET not configured");
-
-    const token = await generateJWT(
-      { sub: staff._id, role: "teacher" },
-      secret
-    );
-
-    return {
-      token,
-      staff: {
-        _id: staff._id,
-        firstName: staff.firstName,
-        lastName: staff.lastName,
-        email: staff.email,
-        subjectIds: staff.subjectIds,
-        departmentId: staff.departmentId,
-        timezone: staff.timezone,
-      },
-    };
-  },
-});
+import { generateResetToken, hashPassword } from "./lib/auth";
 
 export const forgotPassword = action({
   args: { email: v.string() },
@@ -98,6 +41,10 @@ export const resetPassword = action({
     newPassword: v.string(),
   },
   handler: async (ctx, args) => {
+    if (args.newPassword.length < 6) {
+      throw new Error("Password must be at least 6 characters");
+    }
+
     const staff: any = await ctx.runQuery(
       internal.teacherAuthInternal.getStaffByResetToken,
       { resetToken: args.token }

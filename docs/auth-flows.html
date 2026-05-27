@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maple Diary - Auth Flows</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; color: #0f172a; padding: 40px 20px; }
+  h1 { text-align: center; font-size: 28px; margin-bottom: 8px; }
+  .subtitle { text-align: center; color: #64748b; margin-bottom: 48px; font-size: 14px; }
+  .flows { display: flex; gap: 32px; max-width: 1300px; margin: 0 auto; align-items: flex-start; }
+  .flow { flex: 1; background: #fff; border-radius: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04); overflow: hidden; }
+  .flow-header { padding: 20px 24px; color: #fff; font-weight: 700; font-size: 18px; display: flex; align-items: center; gap: 10px; }
+  .flow-header .badge { font-size: 11px; background: rgba(255,255,255,0.25); padding: 3px 8px; border-radius: 6px; font-weight: 500; }
+  .admin .flow-header { background: linear-gradient(135deg, #6366f1, #4f46e5); }
+  .teacher .flow-header { background: linear-gradient(135deg, #0ea5e9, #0284c7); }
+  .student .flow-header { background: linear-gradient(135deg, #10b981, #059669); }
+  .flow-body { padding: 24px; }
+  .step { position: relative; padding-left: 36px; margin-bottom: 4px; }
+  .step-num { position: absolute; left: 0; top: 0; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fff; }
+  .admin .step-num { background: #6366f1; }
+  .teacher .step-num { background: #0ea5e9; }
+  .student .step-num { background: #10b981; }
+  .step-title { font-weight: 600; font-size: 14px; margin-bottom: 2px; }
+  .step-desc { font-size: 12px; color: #64748b; line-height: 1.5; margin-bottom: 4px; }
+  .connector { position: relative; padding-left: 36px; height: 28px; margin-bottom: 4px; }
+  .connector::before { content: ''; position: absolute; left: 11px; top: 0; width: 2px; height: 100%; background: #e2e8f0; }
+  .divider { border: none; border-top: 2px dashed #e2e8f0; margin: 16px 0; }
+  .phase-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #94a3b8; margin-bottom: 12px; }
+  .fields { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+  .field { background: #f1f5f9; border: 1px solid #e2e8f0; padding: 3px 10px; border-radius: 6px; font-size: 11px; font-weight: 500; color: #475569; font-family: 'SF Mono', Monaco, monospace; }
+  .security-box { background: #fefce8; border: 1px solid #fde68a; border-radius: 10px; padding: 14px 16px; margin-top: 16px; }
+  .security-box .sec-title { font-size: 12px; font-weight: 600; color: #92400e; margin-bottom: 6px; }
+  .security-box ul { list-style: none; padding: 0; }
+  .security-box li { font-size: 11px; color: #78716c; padding: 2px 0; padding-left: 16px; position: relative; }
+  .security-box li::before { content: '\2713'; position: absolute; left: 0; color: #16a34a; font-weight: 700; }
+  .guard-box { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 14px 16px; margin-top: 12px; }
+  .guard-box .guard-title { font-size: 12px; font-weight: 600; color: #1e40af; margin-bottom: 6px; }
+  .guard-box .guard-desc { font-size: 11px; color: #64748b; line-height: 1.5; }
+  .guard-tag { display: inline-block; background: #dbeafe; color: #1d4ed8; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; font-family: monospace; }
+  .step-where { display: inline-block; font-size: 9px; font-weight: 600; padding: 1px 6px; border-radius: 4px; margin-left: 4px; vertical-align: middle; }
+  .where-client { background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1; }
+  .where-server { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+  .where-email { background: #ede9fe; color: #6d28d9; border: 1px solid #c4b5fd; }
+  .sub-flow { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; margin-top: 12px; }
+  .sub-flow-title { font-size: 13px; font-weight: 700; margin-bottom: 10px; color: #334155; }
+  .vs-divider { text-align: center; color: #94a3b8; font-size: 11px; font-weight: 600; margin: 14px 0; text-transform: uppercase; letter-spacing: 1px; }
+  .legend { max-width: 1300px; margin: 40px auto 0; display: flex; gap: 24px; justify-content: center; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #64748b; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 50%; }
+  .legend-dot.client { background: #f1f5f9; border: 2px solid #94a3b8; }
+  .legend-dot.server { background: #fbbf24; border: 2px solid #d97706; }
+  .legend-dot.email { background: #a78bfa; border: 2px solid #7c3aed; }
+</style>
+</head>
+<body>
+
+<h1>Maple Diary - Authentication Flows</h1>
+<p class="subtitle">Admin: password login + OTP-verified sign-up | Teacher & Student: OTP-verified login via ConvexCredentials</p>
+
+<div class="flows">
+
+  <!-- ADMIN FLOW -->
+  <div class="flow admin">
+    <div class="flow-header">
+      Admin Portal
+      <span class="badge">Email + Password</span>
+    </div>
+    <div class="flow-body">
+
+      <!-- SIGN IN -->
+      <div class="sub-flow">
+        <div class="sub-flow-title">Sign In (no OTP needed)</div>
+
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-title">Enter credentials <span class="step-where where-client">CLIENT</span></div>
+          <div class="fields">
+            <span class="field">email</span>
+            <span class="field">password</span>
+          </div>
+        </div>
+
+        <div class="connector"></div>
+
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-title">Verify password <span class="step-where where-server">SERVER</span></div>
+          <div class="step-desc">ConvexCredentials authorize() looks up admin by email, verifies bcrypt hash</div>
+        </div>
+
+        <div class="connector"></div>
+
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-title">Session created <span class="step-where where-client">CLIENT</span></div>
+          <div class="step-desc">Redirect to /dashboard</div>
+        </div>
+      </div>
+
+      <div class="vs-divider">-- or --</div>
+
+      <!-- SIGN UP -->
+      <div class="sub-flow">
+        <div class="sub-flow-title">Create Account (OTP required)</div>
+
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-title">Enter details <span class="step-where where-client">CLIENT</span></div>
+          <div class="fields">
+            <span class="field">name</span>
+            <span class="field">email</span>
+            <span class="field">password</span>
+            <span class="field">confirm</span>
+          </div>
+        </div>
+
+        <div class="connector"></div>
+
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-title">Check email available <span class="step-where where-server">SERVER</span></div>
+          <div class="step-desc">requestAdminSignUpOtp() verifies email not taken</div>
+        </div>
+
+        <div class="connector"></div>
+
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-title">Send OTP <span class="step-where where-email">EMAIL</span></div>
+          <div class="step-desc">6-digit code sent to email (5 min expiry)</div>
+        </div>
+
+        <div class="connector"></div>
+
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-title">Enter OTP <span class="step-where where-client">CLIENT</span></div>
+          <div class="step-desc">User enters 6-digit code from email</div>
+        </div>
+
+        <div class="connector"></div>
+
+        <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-title">Verify OTP + Create <span class="step-where where-server">SERVER</span></div>
+          <div class="step-desc">completeAdminSignUp() verifies OTP, hashes password (bcrypt), creates admin user</div>
+        </div>
+
+        <div class="connector"></div>
+
+        <div class="step">
+          <div class="step-num">6</div>
+          <div class="step-title">Auto sign-in <span class="step-where where-client">CLIENT</span></div>
+          <div class="step-desc">Calls signIn("admin") with new credentials, redirect to /dashboard</div>
+        </div>
+      </div>
+
+      <div class="guard-box">
+        <div class="guard-title">Route Guard</div>
+        <div class="guard-desc">
+          <span class="guard-tag">AdminAuthGuard</span> checks useConvexAuth() + verifies role === "admin" via currentUser query. Redirects to /sign-in if unauthorized.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TEACHER FLOW -->
+  <div class="flow teacher">
+    <div class="flow-header">
+      Teacher Portal
+      <span class="badge">Teacher ID + Email/Phone + OTP</span>
+    </div>
+    <div class="flow-body">
+      <div class="phase-label">Step 1 -- Credentials</div>
+
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-title">Enter credentials <span class="step-where where-client">CLIENT</span></div>
+        <div class="fields">
+          <span class="field">teacherId</span>
+          <span class="field">email or phone</span>
+        </div>
+      </div>
+
+      <div class="connector"></div>
+
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-title">Validate credentials <span class="step-where where-server">SERVER</span></div>
+        <div class="step-desc">requestTeacherOtp() looks up staff by email/phone, verifies teacherId match + isActive</div>
+      </div>
+
+      <div class="connector"></div>
+
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-title">Send OTP <span class="step-where where-email">EMAIL</span></div>
+        <div class="step-desc">6-digit code sent via Resend to staff email (5 min expiry)</div>
+      </div>
+
+      <hr class="divider">
+      <div class="phase-label">Step 2 -- OTP Verification</div>
+
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-title">Enter OTP code <span class="step-where where-client">CLIENT</span></div>
+        <div class="step-desc">User enters 6-digit code from email</div>
+      </div>
+
+      <div class="connector"></div>
+
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-title">Verify OTP + Credentials <span class="step-where where-server">SERVER</span></div>
+        <div class="step-desc">ConvexCredentials authorize() verifies OTP, then re-validates teacherId + email/phone against staff table. Creates auth user if first login.</div>
+      </div>
+
+      <div class="connector"></div>
+
+      <div class="step">
+        <div class="step-num">6</div>
+        <div class="step-title">Session created <span class="step-where where-client">CLIENT</span></div>
+        <div class="step-desc">Session token stored in localStorage (maple-teacher). Redirect to /teacher/dashboard</div>
+      </div>
+
+      <div class="guard-box">
+        <div class="guard-title">Route Guard</div>
+        <div class="guard-desc">
+          <span class="guard-tag">TeacherAuthProvider</span> checks useConvexAuth() + verifies role === "teacher" via currentUser query. Fetches staff profile. Redirects to /teacher/login if unauthorized.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STUDENT FLOW -->
+  <div class="flow student">
+    <div class="flow-header">
+      Student Portal
+      <span class="badge">Student ID + Email/Phone + OTP</span>
+    </div>
+    <div class="flow-body">
+      <div class="phase-label">Step 1 -- Credentials</div>
+
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-title">Enter credentials <span class="step-where where-client">CLIENT</span></div>
+        <div class="fields">
+          <span class="field">studentId</span>
+          <span class="field">email or phone</span>
+        </div>
+      </div>
+
+      <div class="connector"></div>
+
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-title">Validate credentials <span class="step-where where-server">SERVER</span></div>
+        <div class="step-desc">requestStudentOtp() looks up student by email/phone, verifies studentId match + isActive</div>
+      </div>
+
+      <div class="connector"></div>
+
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-title">Send OTP <span class="step-where where-email">EMAIL</span></div>
+        <div class="step-desc">6-digit code sent via Resend to student email (5 min expiry)</div>
+      </div>
+
+      <hr class="divider">
+      <div class="phase-label">Step 2 -- OTP Verification</div>
+
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-title">Enter OTP code <span class="step-where where-client">CLIENT</span></div>
+        <div class="step-desc">User enters 6-digit code from email</div>
+      </div>
+
+      <div class="connector"></div>
+
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-title">Verify OTP + Credentials <span class="step-where where-server">SERVER</span></div>
+        <div class="step-desc">ConvexCredentials authorize() verifies OTP, then re-validates studentId + email/phone against students table. Creates auth user if first login.</div>
+      </div>
+
+      <div class="connector"></div>
+
+      <div class="step">
+        <div class="step-num">6</div>
+        <div class="step-title">Session created <span class="step-where where-client">CLIENT</span></div>
+        <div class="step-desc">Session token stored in localStorage (maple-student). Redirect to /student/dashboard</div>
+      </div>
+
+      <div class="guard-box">
+        <div class="guard-title">Route Guard</div>
+        <div class="guard-desc">
+          <span class="guard-tag">StudentAuthProvider</span> checks useConvexAuth() + verifies role === "student" via currentUser query. Fetches student profile. Redirects to /student/login if unauthorized.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM PANELS -->
+<div class="flows" style="margin-top: 32px;">
+  <div class="flow" style="flex: 1;">
+    <div class="flow-header" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+      OTP Security Rules
+    </div>
+    <div class="flow-body">
+      <div class="security-box" style="margin-top: 0;">
+        <div class="sec-title">Server-Side Enforcement</div>
+        <ul>
+          <li>Teacher/Student: OTP verified inside ConvexCredentials authorize() -- cannot bypass</li>
+          <li>Admin sign-up: OTP verified in completeAdminSignUp() action before account creation</li>
+          <li>Admin sign-in: No OTP needed (email + password only)</li>
+          <li>6-digit numeric code, cryptographically random</li>
+          <li>5 minute expiry from generation</li>
+          <li>Max 5 failed attempts per OTP code (then locked)</li>
+          <li>Single-use: marked as used immediately after verification</li>
+          <li>Previous OTPs invalidated when new one is requested</li>
+          <li>60-second resend cooldown on client</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow" style="flex: 1;">
+    <div class="flow-header" style="background: linear-gradient(135deg, #ec4899, #db2777);">
+      Route Protection
+    </div>
+    <div class="flow-body">
+      <div class="security-box" style="margin-top: 0; background: #fdf2f8; border-color: #fbcfe8;">
+        <div class="sec-title" style="color: #9d174d;">Defense Layers</div>
+        <ul>
+          <li>Client: useConvexAuth() checks isAuthenticated before rendering</li>
+          <li>Client: Role verification via currentUser query (admin/teacher/student)</li>
+          <li>Client: Loading spinner while auth resolves (no content flash)</li>
+          <li>Server: getAuthUserId(ctx) validates every Convex query/mutation</li>
+          <li>Isolation: Separate ConvexReactClient per portal with namespaced storage</li>
+          <li>Login pages redirect away if already authenticated</li>
+          <li>Admin passwords: bcrypt hashed (10 salt rounds)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow" style="flex: 1;">
+    <div class="flow-header" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
+      Account Recovery
+    </div>
+    <div class="flow-body">
+      <div class="security-box" style="margin-top: 0; background: #f5f3ff; border-color: #c4b5fd;">
+        <div class="sec-title" style="color: #5b21b6;">Recovery Flows</div>
+        <ul>
+          <li><strong>Admin:</strong> resetAdminPassword internal action (Convex dashboard)</li>
+          <li><strong>Teacher:</strong> Forgot Password -- reset link via email (1hr expiry)</li>
+          <li><strong>Teacher:</strong> Reset token: 48-char random, single-use, clears on success</li>
+          <li><strong>Student:</strong> Forgot Student ID -- ID reminder sent to email</li>
+          <li>All recovery responses don't reveal if account exists</li>
+          <li>Password minimum: 6 characters</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><span class="legend-dot client"></span> Client-side (browser)</div>
+  <div class="legend-item"><span class="legend-dot server"></span> Server-side (Convex)</div>
+  <div class="legend-item"><span class="legend-dot email"></span> Email (Resend)</div>
+</div>
+
+</body>
+</html>
